@@ -2214,3 +2214,168 @@ footer {
   min-width: 40px;
   min-height: 40px;
 }
+.public-share {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 48px 24px;
+  color: #bfd6bb;
+  font-family: 'Courier New', monospace;
+}
+.public-share header {
+  margin-bottom: 32px;
+}
+.public-share h1 {
+  font-size: 34px;
+  line-height: 1.25;
+  margin: 20px 0;
+}
+.public-share header p {
+  font-size: 14px;
+  color: #94af97;
+}
+.public-records {
+  display: grid;
+  gap: 20px;
+}
+.public-records article {
+  border: 1px solid #536b514f;
+  background: #13251a;
+  padding: 25px;
+}
+.public-records h2 {
+  font-size: 19px;
+  margin: 10px 0 20px;
+}
+.public-dino {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.public-dino strong {
+  font-size: 25px;
+  font-weight: 400;
+}
+.public-dino span {
+  font-size: 15px;
+  color: #a6c9a0;
+}
+.public-records img {
+  display: block;
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  margin-top: 20px;
+}
+.updated {
+  font-size: 12px;
+  color: #8fa68e;
+  margin-top: 15px;
+}
+.public-code {
+  margin-top: 20px;
+}
+.public-code label {
+  display: block;
+  font-size: 14px;
+}
+.public-code textarea {
+  width: 100%;
+  display: block;
+  margin-top: 10px;
+  min-height: 70px;
+}
+.public-share footer {
+  margin: 30px 0 0;
+  padding: 20px 0;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.public-share a {
+  color: #b0d9a9;
+  text-decoration: underline;
+}
+.share-settings {
+  display: grid;
+  gap: 17px;
+}
+.share-settings input[type='text'] {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  background: #102016;
+  border: 1px solid #576f505e;
+  font-size: 15px;
+  color: #d3e5c9;
+}
+.share-settings label {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.share-selection {
+  max-height: 200px;
+  overflow: auto;
+  border: 1px solid #536b514f;
+  padding: 6px 12px;
+}
+.share-choice {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+}
+.share-settings [data-slot='checkbox'] {
+  flex-shrink: 0;
+}
+.share-hint {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #96b196;
+}
+.published-share {
+  padding: 16px 0;
+  border-top: 1px solid #536b514f;
+}
+.published-share h3 {
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+.published-share input {
+  width: 100%;
+  font-size: 12px;
+  background: #0c180f;
+  color: #bfd6bb;
+  padding: 9px;
+  border: 1px solid #536b514f;
+}
+.share-actions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.save-indicator {
+  font-size: 11px;
+  color: #a3b49a;
+}
+.migration-notice {
+  font-size: 13px;
+  background: #1e3020;
+  padding: 13px;
+  line-height: 1.7;
+  margin-bottom: 15px;
+}
+.migration-notice button {
+  display: block;
+  text-decoration: underline;
+  margin-top: 7px;
+}
+.share-errors {
+  font-size: 13px;
+  color: #e5c8a0;
+}
+.share-settings .primary-button {
+  width: 100%;
+}
