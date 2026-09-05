@@ -1,4 +1,5 @@
 'use client';
+import { growthText } from '@/lib/garage-model';
 /* oxlint-disable next/no-img-element -- Public share images are access-checked owned uploads. */
 import { useEffect, useState } from 'react';
 
@@ -64,10 +65,11 @@ export default function SharedView({ initial }: { initial: PublicShare }) {
         {data.records.map((r, i) => (
           <article key={r.server + '-' + i}>
             <div className="public-dino">
-              <h2>
+              <h2 className={r.prime ? 'prime-species' : undefined}>
                 {r.state === 'No dinosaur'
                   ? 'No dinosaur'
                   : r.species || 'Unknown dinosaur'}
+                {r.prime && <span className="prime-badge">PRIME</span>}
               </h2>
               <span className="public-status" data-state={r.state}>
                 {r.state === 'Living' ? 'Parked · Living' : r.state}
@@ -76,15 +78,18 @@ export default function SharedView({ initial }: { initial: PublicShare }) {
             <dl className="public-facts">
               <div>
                 <dt>Server</dt>
-                <dd>{r.server}</dd>
+                <dd>
+                  {r.server}
+                  {r.accountLabel && (
+                    <span className="public-account-label">
+                      {r.accountLabel}
+                    </span>
+                  )}
+                </dd>
               </div>
               <div>
                 <dt>Growth</dt>
-                <dd>
-                  {r.state === 'No dinosaur' || r.state === 'Unknown'
-                    ? '—'
-                    : `${r.growth}%`}
-                </dd>
+                <dd>{r.state === 'No dinosaur' ? '—' : growthText(r)}</dd>
               </div>
             </dl>
             <p className="updated">

@@ -1,3 +1,4 @@
+import { recordSummary } from '../garage-model';
 import { env } from 'cloudflare:workers';
 import { db, origin } from './runtime';
 import { publicData, type ShareRow } from './garage';
@@ -77,10 +78,7 @@ export async function syncDiscord(ownerId: string) {
               url: `${origin()}/s/${id}`,
               description: data.records
                 .slice(0, 8)
-                .map(
-                  (r) =>
-                    `${r.server}: ${r.species || 'No dinosaur'} · ${r.state}${r.state === 'Living' ? ` · ${r.growth}%` : ''}`,
-                )
+                .map(recordSummary)
                 .join('\n')
                 .slice(0, 3500),
               color: 9685403,

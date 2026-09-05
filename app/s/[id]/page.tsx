@@ -1,3 +1,4 @@
+import { recordSummary } from '@/lib/garage-model';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { publicData } from '@/lib/server/garage';
@@ -17,10 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   const description = data.records
     .slice(0, 5)
-    .map(
-      (r) =>
-        `${r.server}: ${r.species || 'No dinosaur'}${r.state === 'Living' ? ` ${r.growth}%` : ''} (${r.state})`,
-    )
+    .map(recordSummary)
     .join(' · ')
     .slice(0, 300);
   const image = `${origin()}/s/${id}/image?v=${data.revision}`;

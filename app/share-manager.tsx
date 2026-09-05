@@ -1,21 +1,27 @@
 'use client';
+import { selectedRecord } from '@/lib/garage-model';
 import { useEffect, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { Server, Share } from '@/lib/garage-types';
+import { forAccount, selectionKey, growthText } from '@/lib/garage-model';
+import type { Server, Share, GameAccount } from '@/lib/garage-types';
 export default function ShareManager({
   servers,
+  accounts,
+  initialAccountId,
   saved,
   onSave,
 }: {
   servers: Server[];
+  accounts: GameAccount[];
+  initialAccountId: string;
   saved: boolean;
   onSave: () => void;
 }) {
   const [shares, setShares] = useState<Share[]>([]);
   const [title, setTitle] = useState('My Evrima garage');
-  const [selected, setSelected] = useState(
-    servers.filter((s) => s.favorite).map((s) => s.id),
-  );
+  const [selected, setSelected] = useState<string[]>([]);
+  const [accountId, setAccountId] = useState(initialAccountId);
+  const [accountLabels, setAccountLabels] = useState(false);
   const [codes, setCodes] = useState(false);
   const [photos, setPhotos] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -74,6 +80,7 @@ export default function ShareManager({
             selectedIds: selected,
             includeCodes: codes,
             includePhotos: photos,
+            includeAccountLabels: accountLabels,
           }),
         },
       );
@@ -84,6 +91,8 @@ export default function ShareManager({
       if (!response.ok) throw new Error(data.error || 'Could not publish');
       await refresh();
       setEditing(null);
+      setSelected([]);
+      setAccountLabels(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not publish');
     } finally {
@@ -129,22 +138,88 @@ export default function ShareManager({
         />
       </label>
       <fieldset className="share-selection">
-        <legend>Servers to include</legend>
-        {servers.map((s) => (
-          <label className="share-choice" key={s.id} htmlFor={'share-' + s.id}>
-            <Checkbox
-              id={'share-' + s.id}
-              checked={selected.includes(s.id)}
-              onCheckedChange={(v) =>
-                setSelected((ids) =>
-                  v ? [...ids, s.id] : ids.filter((id) => id !== s.id),
-                )
-              }
-            />
-            <span>{s.name}</span>
-          </label>
-        ))}
+        <legend>Account &amp; records to include</legend>
+        <label>
+          Game account
+          <select
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
+          >
+            {accounts.map((a) => (
+              <option value={a.id} key={a.id}>
+                {a.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="share-hint">
+          {selected.length} records selected across your accounts. Select each
+          record explicitly.
+        </p>
+        {servers.map((baseServer) => {
+          const s = forAccount(baseServer, accountId);
+          const key = selectionKey(accountId, s.id);
+          return (
+            <label className="share-choice" key={s.id} htmlFor={'share-' + key}>
+              <Checkbox
+                id={'share-' + key}
+                checked={selected.includes(key)}
+                onCheckedChange={(v) =>
+                  setSelected((ids) =>
+                    v
+                      ? [...new Set([...ids, key])]
+                      : ids.filter((id) => id !== key),
+                  )
+                }
+              />
+              <span>
+                {s.name}
+                <small className="share-record-detail">
+                  {s.species || s.state} · {s.state}
+                  {s.state !== 'No dinosaur' ? ' · ' + growthText(s) : ''}
+                  {s.prime ? ' · PRIME' : ''}
+                </small>
+              </span>
+            </label>
+          );
+        })}
       </fieldset>
+      {selected.length > 0 && (
+        <div
+          className="share-selected-review"
+          aria-label="Selected account records"
+        >
+          <strong>Selected records</strong>
+          {selected.map((key) => {
+            const item = selectedRecord(servers, accounts, key);
+            return (
+              <div key={key}>
+                <span>
+                  {item
+                    ? item.account.label + ' · ' + item.record.name
+                    : 'Record no longer available'}
+                </span>
+                <button
+                  className="text-button"
+                  onClick={() =>
+                    setSelected((ids) => ids.filter((id) => id !== key))
+                  }
+                >
+                  Remove
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <label className="share-choice" htmlFor="share-account-labels">
+        <Checkbox
+          id="share-account-labels"
+          checked={accountLabels}
+          onCheckedChange={(v) => setAccountLabels(!!v)}
+        />
+        Include game-account labels
+      </label>
       <label className="share-choice" htmlFor="share-codes">
         <Checkbox
           id="share-codes"
@@ -173,7 +248,14 @@ export default function ShareManager({
             : 'Create public link'}
       </button>
       {editing && (
-        <button className="text-button" onClick={() => setEditing(null)}>
+        <button
+          className="text-button"
+          onClick={() => {
+            setEditing(null);
+            setSelected([]);
+            setAccountLabels(false);
+          }}
+        >
           Cancel selection edit
         </button>
       )}
@@ -266,6 +348,12 @@ export default function ShareManager({
                     setSelected(s.selectedIds);
                     setCodes(s.includeCodes);
                     setPhotos(s.includePhotos);
+                    setAccountLabels(s.includeAccountLabels);
+                    setAccountId(
+                      s.selectedIds[0]?.includes(':')
+                        ? s.selectedIds[0].split(':')[0]
+                        : 'main',
+                    );
                   }}
                 >
                   Edit selection

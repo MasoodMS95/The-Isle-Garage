@@ -9,6 +9,7 @@ import {
 } from '@/lib/server/runtime';
 import {
   clientRecords,
+  clientAccounts,
   getGarage,
   shareInput,
   shareView,
@@ -32,7 +33,11 @@ export async function POST(request: Request) {
     const ownerId = await owner();
     const g = await getGarage(ownerId);
     if (!g) throw new HttpError(409, 'Save your garage before sharing');
-    const input = shareInput(await body(request), clientRecords(g) || []);
+    const input = shareInput(
+      await body(request),
+      clientRecords(g) || [],
+      clientAccounts(g),
+    );
     const count = await db()
       .prepare('SELECT COUNT(*) AS n FROM shares WHERE owner_id=? AND active=1')
       .bind(ownerId)
@@ -48,7 +53,10 @@ export async function POST(request: Request) {
         id,
         ownerId,
         input.title,
-        JSON.stringify(input.selectedIds),
+        JSON.stringify({
+          ids: input.selectedIds,
+          includeAccountLabels: input.includeAccountLabels,
+        }),
         input.includeCodes,
         input.includePhotos,
         new Date().toISOString(),

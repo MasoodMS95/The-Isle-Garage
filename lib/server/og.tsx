@@ -1,3 +1,4 @@
+import { growthText } from '../garage-model';
 /* oxlint-disable next/no-img-element -- ImageResponse consumes raster data directly, not Next image components. */
 import { ImageResponse } from 'next/og';
 import { Buffer } from 'node:buffer';
@@ -64,11 +65,20 @@ export async function garageImage(id: string) {
               }}
             >
               <span style={{ fontSize: 21, color: '#9daf95' }}>
-                {r.server.slice(0, 45)}
+                {(r.accountLabel ? r.accountLabel + ' · ' : '') +
+                  r.server.slice(0, 45)}
               </span>
-              <span style={{ fontSize: 29, marginTop: 5 }}>
+              <span
+                style={{
+                  fontSize: 25,
+                  marginTop: 5,
+                  color: r.prime ? '#e3c26a' : '#bed7b8',
+                }}
+              >
                 {(r.species || 'No dinosaur').slice(0, 35)}
-                {r.state === 'Living' ? ` · ${r.growth}%` : ` · ${r.state}`}
+                {r.prime ? ' · PRIME' : ''}
+                {' · ' + r.state}
+                {r.state !== 'No dinosaur' ? ' · ' + growthText(r) : ''}
               </span>
             </div>
           ))}

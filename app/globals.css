@@ -2471,3 +2471,140 @@ footer {
   padding: 24px 0;
   color: #a6bf9f;
 }
+
+.account-switcher {
+  margin: 18px 0 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #78977c44;
+}
+.account-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #95ad99;
+  font-size: 12px;
+}
+.account-tabs {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 8px 0;
+}
+.account-tabs button {
+  padding: 8px 13px;
+  font-size: 14px;
+  border: 1px solid #78977c55;
+  white-space: nowrap;
+}
+.account-tabs button[aria-pressed='true'] {
+  color: #d6e8cd;
+  background: #70996e29;
+  border-color: #a6c29d;
+}
+.account-select {
+  display: none;
+  width: 100%;
+}
+.account-switcher select,
+.growth-fields select,
+.share-settings select {
+  padding: 10px;
+  border: 1px solid #78977c66;
+  background: #102017;
+  color: #c9ddc0;
+  font: inherit;
+  font-size: 14px;
+}
+.growth-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.growth-fields select,
+.growth-fields input {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}
+.prime-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.prime-choice input {
+  width: 18px;
+  height: 18px;
+  accent-color: #d8b759;
+}
+.prime-badge {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 3px 6px;
+  vertical-align: middle;
+  border: 1px solid #d8b75988;
+  color: #e7c76d;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.prime-species {
+  color: #e7c76d;
+}
+.public-dino h2.prime-species {
+  color: #e7c76d;
+}
+.account-manage-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  overflow-wrap: anywhere;
+}
+.public-account-label,
+.share-record-detail {
+  display: block;
+  margin-top: 5px;
+  font-size: 13px;
+  color: #9fb29c;
+}
+.share-settings select {
+  display: block;
+  width: 100%;
+  margin: 10px 0;
+}
+@media (max-width: 600px) {
+  .account-tabs {
+    display: none;
+  }
+  .account-select {
+    display: block;
+    margin-top: 8px;
+  }
+  .growth-fields {
+    grid-template-columns: 1fr;
+  }
+}
+.share-selected-review > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  padding: 6px 0;
+}
+.share-selected-review {
+  padding: 14px;
+  border: 1px solid #78977c44;
+}
+.dino-identity h4.prime-species {
+  color: #e7c76d;
+}
+.growth[data-mode='stage'] strong,
+.growth[data-mode='unknown'] strong {
+  font-size: 15px;
+  line-height: 1.4;
+  max-width: 105px;
+  white-space: normal;
+}

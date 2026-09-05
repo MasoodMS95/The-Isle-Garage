@@ -6,7 +6,14 @@ import { useEffect, useState, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import MenuSound from './menu-sound';
 import ShareManager from './share-manager';
-import type { Server, RecordState } from '@/lib/garage-types';
+import {
+  dino,
+  forAccount,
+  saveAccountView,
+  growthText,
+} from '@/lib/garage-model';
+import { stages } from '@/lib/garage-types';
+import type { Server, RecordState, GameAccount } from '@/lib/garage-types';
 import {
   ArrowUpRight,
   ChevronRight,
@@ -36,7 +43,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 const initial: Server[] = [
@@ -115,14 +122,44 @@ const speciesList = [
 ];
 export default function Garage({
   initialRecords,
+  initialAccounts,
   initialVersion,
   ownerName,
 }: {
   initialRecords: Server[] | null;
+  initialAccounts: GameAccount[];
   initialVersion: number;
   ownerName: string;
 }) {
-  const [servers, setServers] = useState<Server[]>(initialRecords || initial);
+  const [allServers, setAllServers] = useState<Server[]>(
+    (initialRecords || initial).map((s) => ({ ...s, ...dino(s) })),
+  );
+  const [accounts, setAccounts] = useState(initialAccounts);
+  const [accountId, selectAccount] = useState('main');
+  function setAccountId(id: string) {
+    setEdit(null);
+    selectAccount(id);
+  }
+  const [manageAccounts, setManageAccounts] = useState(false);
+  const [accountName, setAccountName] = useState('');
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const servers = allServers.map((s) => forAccount(s, accountId));
+  function setServers(value: Server[] | ((old: Server[]) => Server[])) {
+    setAllServers((old) =>
+      saveAccountView(
+        old,
+        typeof value === 'function'
+          ? value(old.map((s) => forAccount(s, accountId)))
+          : value,
+        accountId,
+      ),
+    );
+  }
+  const snapshot = useRef({ records: allServers, accounts });
+  useEffect(() => {
+    snapshot.current = { records: allServers, accounts };
+  }, [allServers, accounts]);
+
   const [legacy, setLegacy] = useState<Server[] | null>(null);
   const [saveState, setSaveState] = useState(
     initialRecords ? 'saved' : 'unsaved',
@@ -244,13 +281,17 @@ export default function Garage({
   useEffect(() => {
     if (!changed) return;
     const timer = setTimeout(() => {
-      const records = currentServers.current;
+      const { records, accounts: savedAccounts } = snapshot.current;
       saveChain.current = saveChain.current.then(async () => {
         try {
           const response = await fetch('/api/garage', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ records, version: revision.current }),
+            body: JSON.stringify({
+              records,
+              accounts: savedAccounts,
+              version: revision.current,
+            }),
           });
           const data = (await response.json()) as {
             error?: string;
@@ -259,8 +300,11 @@ export default function Garage({
           };
           if (!response.ok) throw new Error(data.error || 'Save failed');
           revision.current = data.version;
-          if (currentServers.current === records) {
-            setServers(data.records);
+          if (
+            snapshot.current.records === records &&
+            snapshot.current.accounts === savedAccounts
+          ) {
+            setAllServers(data.records);
             setSaveState('saved');
             setLegacy(null);
           }
@@ -292,6 +336,17 @@ export default function Garage({
   }
   function save() {
     if (!edit) return;
+    if (
+      edit.growthMode === 'percent' &&
+      (!Number.isFinite(edit.growth) || edit.growth < 1 || edit.growth > 100)
+    ) {
+      setNotice('Enter growth from 1 to 100, or choose Unknown.');
+      return;
+    }
+    if (edit.growthMode === 'stage' && !edit.growthStage) {
+      setNotice('Choose a growth stage.');
+      return;
+    }
     update({ ...edit, updated: new Date().toISOString() });
     setEdit(null);
     setNotice('Record updated. Your server stays in My Servers.');
@@ -378,10 +433,11 @@ export default function Garage({
                   ? 'DEAD'
                   : s.state.toUpperCase()}
             </span>
-            <h4>
+            <h4 className={s.prime ? 'prime-species' : undefined}>
               {s.species === 'Tyrannosaurus'
                 ? 'T-Rex'
                 : s.species || 'No dinosaur'}
+              {s.prime && <span className="prime-badge">PRIME</span>}
             </h4>
             <span className="record-note">
               {s.state === 'No dinosaur'
@@ -393,16 +449,13 @@ export default function Garage({
             </span>
           </div>
           {s.state === 'Living' && (
-            <div className="growth">
-              <strong>
-                {s.growth}
-                <small>%</small>
-              </strong>
+            <div className="growth" data-mode={s.growthMode}>
+              <strong>{growthText(s)}</strong>
               <span>GROWTH</span>
             </div>
           )}
         </div>
-        {s.state === 'Living' && (
+        {s.state === 'Living' && s.growthMode === 'percent' && (
           <meter
             className="growth-line"
             aria-label="Growth"
@@ -422,6 +475,9 @@ export default function Garage({
                       state: 'Living' as RecordState,
                       species: speciesList[0],
                       growth: 0,
+                      growthMode: 'unknown',
+                      growthStage: '',
+                      prime: false,
                       code: '',
                       photo: '',
                     }
@@ -496,7 +552,8 @@ export default function Garage({
                 ChatGPT account?
                 <button
                   onClick={() => {
-                    setServers(legacy);
+                    setAllServers(legacy.map((s) => ({ ...s, ...dino(s) })));
+                    setAccountId('main');
                     markChanged();
                   }}
                 >
@@ -504,6 +561,47 @@ export default function Garage({
                 </button>
               </div>
             )}
+            <section className="account-switcher" aria-label="Game accounts">
+              <div className="account-heading">
+                <span>GAME ACCOUNT</span>
+                <button
+                  className="text-button"
+                  onClick={() => {
+                    setManageAccounts(true);
+                    setRenameId(null);
+                    setAccountName('');
+                  }}
+                >
+                  Manage accounts
+                </button>
+              </div>
+              <fieldset
+                className="account-tabs"
+                aria-label="Select game account"
+              >
+                {accounts.map((a) => (
+                  <button
+                    key={a.id}
+                    aria-pressed={a.id === accountId}
+                    onClick={() => setAccountId(a.id)}
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </fieldset>
+              <select
+                className="account-select"
+                aria-label="Game account"
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+              >
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.label}
+                  </option>
+                ))}
+              </select>
+            </section>
             <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
               <div className="tab-row">
                 <TabsList variant="line">
@@ -751,7 +849,8 @@ export default function Garage({
         <DialogContent className="garage-dialog">
           <DialogTitle>Dinosaur record</DialogTitle>
           <DialogDescription>
-            {edit?.name} · manually tracked dinosaur
+            {accounts.find((a) => a.id === accountId)?.label} · {edit?.name} ·
+            manually tracked dinosaur
           </DialogDescription>
           {edit && (
             <form
@@ -803,35 +902,80 @@ export default function Garage({
                   </Select>
                 </label>
               </div>
-              <div className="growth-control">
-                <label htmlFor="growth">
-                  Growth{' '}
-                  <input
-                    id="growth"
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={edit.growth}
+              <div className="growth-fields">
+                <label>
+                  Growth format
+                  <select
+                    value={edit.growthMode || 'unknown'}
                     onChange={(e) =>
                       setEdit({
                         ...edit,
-                        growth: Math.max(
-                          0,
-                          Math.min(100, Number(e.target.value)),
-                        ),
+                        growthMode: e.target.value as Server['growthMode'],
+                        growth: 0,
+                        growthStage: '',
                       })
                     }
-                  />{' '}
-                  %
+                  >
+                    <option value="unknown">Unknown / unset</option>
+                    <option value="percent">Percentage</option>
+                    <option value="stage">Stage</option>
+                  </select>
                 </label>
-                <Slider
-                  aria-label="Dinosaur growth"
-                  value={[edit.growth]}
-                  onValueChange={(v) =>
-                    setEdit({ ...edit, growth: Array.isArray(v) ? v[0] : v })
-                  }
-                />
+                {edit.growthMode === 'percent' && (
+                  <label>
+                    Growth %
+                    <input
+                      aria-label="Growth percentage"
+                      type="number"
+                      min={1}
+                      max={100}
+                      step="any"
+                      required
+                      value={edit.growth || ''}
+                      onChange={(e) =>
+                        setEdit({
+                          ...edit,
+                          growth:
+                            e.target.value === '' ? 0 : Number(e.target.value),
+                        })
+                      }
+                    />
+                  </label>
+                )}
+                {edit.growthMode === 'stage' && (
+                  <label>
+                    Growth stage
+                    <select
+                      required
+                      value={edit.growthStage || ''}
+                      onChange={(e) =>
+                        setEdit({
+                          ...edit,
+                          growthStage: e.target.value as Server['growthStage'],
+                        })
+                      }
+                    >
+                      <option value="">Choose stage</option>
+                      {stages.map((stage) => (
+                        <option key={stage} value={stage}>
+                          {stage}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
               </div>
+              <label className="prime-choice">
+                <input
+                  type="checkbox"
+                  checked={!!edit.prime}
+                  onChange={(e) =>
+                    setEdit({ ...edit, prime: e.target.checked })
+                  }
+                />{' '}
+                Prime{' '}
+                <span className="optional">tracked separately from growth</span>
+              </label>
               <label>
                 Skin code <span className="optional">optional</span>
                 <textarea
@@ -901,6 +1045,9 @@ export default function Garage({
                       state: 'No dinosaur',
                       species: '',
                       growth: 0,
+                      growthMode: 'unknown',
+                      growthStage: '',
+                      prime: false,
                       code: '',
                       photo: '',
                       updated: new Date().toISOString(),
@@ -922,6 +1069,92 @@ export default function Garage({
           )}
         </DialogContent>
       </Dialog>
+      <Dialog open={manageAccounts} onOpenChange={setManageAccounts}>
+        <DialogContent className="garage-dialog">
+          <DialogTitle>Game accounts</DialogTitle>
+          <DialogDescription>
+            Labels for your game accounts, separate from your ChatGPT sign-in.
+            All accounts use the same favorite servers.
+          </DialogDescription>
+          <div className="account-manage-list">
+            {accounts.map((a) => (
+              <div key={a.id}>
+                <span>{a.label}</span>
+                <button
+                  className="text-button"
+                  onClick={() => {
+                    setRenameId(a.id);
+                    setAccountName(a.label);
+                  }}
+                >
+                  Rename
+                </button>
+              </div>
+            ))}
+          </div>
+          <form
+            className="edit-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const label = accountName.trim();
+              if (
+                !label ||
+                accounts.some(
+                  (a) =>
+                    a.id !== renameId &&
+                    a.label.toLowerCase() === label.toLowerCase(),
+                )
+              ) {
+                setNotice('Choose a unique account name.');
+                return;
+              }
+              if (renameId)
+                setAccounts((old) =>
+                  old.map((a) => (a.id === renameId ? { ...a, label } : a)),
+                );
+              else {
+                if (accounts.length >= 20) {
+                  setNotice('Up to 20 accounts are supported.');
+                  return;
+                }
+                const id = crypto.randomUUID();
+                setAccounts((old) => [...old, { id, label }]);
+                setAccountId(id);
+              }
+              markChanged();
+              setAccountName('');
+              setRenameId(null);
+            }}
+          >
+            <label>
+              {renameId ? 'Rename account' : 'New account label'}
+              <input
+                required
+                maxLength={40}
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+              />
+            </label>
+            <div className="form-actions">
+              <button className="primary-button">
+                {renameId ? 'Save label' : 'Add account'}
+              </button>
+              {renameId && (
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => {
+                    setRenameId(null);
+                    setAccountName('');
+                  }}
+                >
+                  Cancel rename
+                </button>
+              )}
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
       <Dialog open={share} onOpenChange={setShare}>
         <DialogContent className="garage-dialog">
           <DialogTitle>Share your garage</DialogTitle>
@@ -929,7 +1162,9 @@ export default function Garage({
             Publish selected records, then copy a stable link.
           </DialogDescription>
           <ShareManager
-            servers={servers}
+            servers={allServers}
+            accounts={accounts}
+            initialAccountId={accountId}
             saved={saveState === 'saved'}
             onSave={markChanged}
           />

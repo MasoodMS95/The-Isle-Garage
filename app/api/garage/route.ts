@@ -8,13 +8,23 @@ import {
   mutation,
   obj,
 } from '@/lib/server/runtime';
-import { clientRecords, getGarage, validateRecords } from '@/lib/server/garage';
+import {
+  clientRecords,
+  clientAccounts,
+  validateAccounts,
+  getGarage,
+  validateRecords,
+} from '@/lib/server/garage';
 import { syncDiscord } from '@/lib/server/discord';
 export async function GET() {
   try {
     const id = await owner();
     const g = await getGarage(id);
-    return json({ records: clientRecords(g), version: g?.version || 0 });
+    return json({
+      records: clientRecords(g),
+      accounts: clientAccounts(g),
+      version: g?.version || 0,
+    });
   } catch (e) {
     return failure(e);
   }
@@ -32,10 +42,12 @@ export async function PUT(request: Request) {
         409,
         'Your garage changed in another tab. Reload before saving.',
       );
+    const accounts = validateAccounts(data.accounts, clientAccounts(old));
     const records = await validateRecords(
       data.records,
       id,
       clientRecords(old) || [],
+      accounts,
     );
     const now = new Date().toISOString();
     await db()
@@ -48,7 +60,12 @@ export async function PUT(request: Request) {
       .prepare(
         'UPDATE garages SET records=?, version=version+1, updated_at=? WHERE owner_id=? AND version=? RETURNING version',
       )
-      .bind(JSON.stringify(records), now, id, data.version)
+      .bind(
+        JSON.stringify({ accounts, servers: records }),
+        now,
+        id,
+        data.version,
+      )
       .first<{ version: number }>();
     if (!updated)
       throw new HttpError(
@@ -56,7 +73,7 @@ export async function PUT(request: Request) {
         'Your garage changed in another tab. Reload before saving.',
       );
     const discord = await syncDiscord(id);
-    return json({ records, version: updated.version, discord });
+    return json({ records, accounts, version: updated.version, discord });
   } catch (e) {
     return failure(e);
   }
