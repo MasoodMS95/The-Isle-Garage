@@ -2379,3 +2379,19 @@ footer {
 .share-settings .primary-button {
   width: 100%;
 }
+
+.tab-row {
+  flex-wrap: wrap;
+  row-gap: 12px;
+}
+.tab-row .share-garage-button {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  padding: 4px 9px;
+  border: 1px solid #91b59655;
+  background: #90b9980a;
+}
+.tab-row .share-garage-button:hover {
+  border-color: #a1c8a5;
+  background: #90b99818;
+}

@@ -516,13 +516,15 @@ export default function Garage({
                     Discover
                   </TabsTrigger>
                 </TabsList>
-                <button
-                  className="icon-button"
-                  aria-label="Preview shared garage"
-                  onClick={() => setShare(true)}
-                >
-                  <Share2 size={18} />
-                </button>
+                {tab === 'mine' && (
+                  <button
+                    className="text-button share-garage-button"
+                    onClick={() => setShare(true)}
+                  >
+                    <Share2 size={15} aria-hidden="true" />
+                    Share garage
+                  </button>
+                )}
               </div>
               <TabsContent value="mine">
                 <div className="section-caption">
