@@ -2185,3 +2185,32 @@ footer {
     display: none;
   }
 }
+/* Discover is a quiet server-only picker; My Servers retains dinosaur records. */
+.directory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+.directory-item {
+  padding: 15px 12px;
+  border: 0;
+  gap: 12px;
+  background: #122017;
+}
+.directory-item:hover {
+  background: #192c1d;
+}
+.directory-item h3 {
+  font-size: 16px;
+  line-height: 1.4;
+  margin-bottom: 5px;
+}
+.directory-item span {
+  font-size: 12px;
+  color: #8fa895;
+}
+.directory-item .icon-button {
+  min-width: 40px;
+  min-height: 40px;
+}

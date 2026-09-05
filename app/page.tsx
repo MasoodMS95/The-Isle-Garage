@@ -11,7 +11,6 @@ import {
   Compass,
   Copy,
   Feather,
-  Globe2,
   Leaf,
   Pause,
   Play,
@@ -568,12 +567,9 @@ export default function Home() {
                 <div className="directory-list">
                   {filtered.map((s) => (
                     <article className="directory-item" key={s.id}>
-                      <Globe2 size={21} />
                       <div>
                         <h3>{s.name}</h3>
-                        <span>
-                          {s.kind} · {s.community}
-                        </span>
+                        <span>{s.kind}</span>
                       </div>
                       <button
                         className="icon-button"
