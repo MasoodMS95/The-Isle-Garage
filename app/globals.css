@@ -2395,3 +2395,79 @@ footer {
   border-color: #a1c8a5;
   background: #90b99818;
 }
+
+/* Read-only recipient profile. */
+.public-share {
+  max-width: 820px;
+  padding: clamp(28px, 6vw, 64px) clamp(16px, 4vw, 32px);
+}
+.public-share h1 {
+  overflow-wrap: anywhere;
+  font-size: clamp(26px, 5vw, 38px);
+  margin: 16px 0 10px;
+}
+.public-records {
+  gap: 14px;
+}
+.public-records article {
+  padding: clamp(18px, 4vw, 26px);
+  background: #102017;
+}
+.public-dino {
+  align-items: flex-start;
+  gap: 12px;
+}
+.public-dino h2 {
+  flex: 1 1 220px;
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.public-dino .public-status {
+  padding: 5px 9px;
+  border: 1px solid #78977c66;
+  font-size: 14px;
+  color: #b4c8b1;
+}
+.public-status[data-state='Living'] {
+  background: #7ba96c14;
+}
+.public-dino .public-status[data-state='Dead'] {
+  color: #d1aea1;
+  border-color: #a37b6555;
+}
+.public-facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  margin-top: 22px;
+}
+.public-facts dt {
+  color: #93ad98;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+.public-facts dd {
+  margin: 0;
+  color: #d1e0ca;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.public-facts > div:last-child {
+  text-align: right;
+}
+.public-details {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #536b514f;
+}
+.public-details summary {
+  cursor: pointer;
+  font-size: 14px;
+  color: #a6bf9f;
+}
+.public-empty {
+  padding: 24px 0;
+  color: #a6bf9f;
+}

@@ -1,7 +1,7 @@
 'use client';
 /* oxlint-disable next/no-img-element -- Public share images are access-checked owned uploads. */
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+
 import type { PublicShare } from '@/lib/garage-types';
 export default function SharedView({ initial }: { initial: PublicShare }) {
   const [data, setData] = useState(initial);
@@ -46,61 +46,84 @@ export default function SharedView({ initial }: { initial: PublicShare }) {
   return (
     <main className="public-share">
       <header>
-        <span className="eyebrow moss">THE ISLE GARAGE / SHARED RECORDS</span>
+        <span className="eyebrow moss">THE ISLE GARAGE / PUBLIC PROFILE</span>
         <h1>{data.title}</h1>
-        <p>Manual website records · refreshes every 15 seconds</p>
+        <p>Dinosaurs &amp; servers</p>
       </header>
       {stale && (
         <p role="alert">
           Connection interrupted. Showing the last received records.
         </p>
       )}
+      {data.records.length === 0 && (
+        <p className="public-empty">
+          No dinosaurs or servers are currently shared.
+        </p>
+      )}
       <div className="public-records">
         {data.records.map((r, i) => (
           <article key={r.server + '-' + i}>
-            <div>
-              <span className="eyebrow">{r.kind}</span>
-              <h2>{r.server}</h2>
-            </div>
             <div className="public-dino">
-              <strong>{r.species || 'No dinosaur'}</strong>
-              <span>
-                {r.state === 'Living' ? 'Parked' : r.state}
-                {r.state === 'Living' ? ` · ${r.growth}% growth` : ''}
+              <h2>
+                {r.state === 'No dinosaur'
+                  ? 'No dinosaur'
+                  : r.species || 'Unknown dinosaur'}
+              </h2>
+              <span className="public-status" data-state={r.state}>
+                {r.state === 'Living' ? 'Parked · Living' : r.state}
               </span>
             </div>
+            <dl className="public-facts">
+              <div>
+                <dt>Server</dt>
+                <dd>{r.server}</dd>
+              </div>
+              <div>
+                <dt>Growth</dt>
+                <dd>
+                  {r.state === 'No dinosaur' || r.state === 'Unknown'
+                    ? '—'
+                    : `${r.growth}%`}
+                </dd>
+              </div>
+            </dl>
             <p className="updated">
-              User updated:{' '}
+              Updated:{' '}
               {r.updatedAt
                 ? new Date(r.updatedAt).toLocaleString()
                 : 'Not recorded'}
             </p>
-            {r.photo && (
-              <img
-                src={`${r.photo}?v=${data.revision}`}
-                alt={`${r.species || 'Dinosaur'} screenshot shared by owner`}
-              />
-            )}{' '}
-            {r.code && (
-              <div className="public-code">
-                <label>
-                  Skin code
-                  <textarea readOnly value={r.code} />
-                </label>
-                <button
-                  className="text-button"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(r.code!);
-                      setCopied(r.server);
-                    } catch {
-                      setCopied('Select the text to copy');
-                    }
-                  }}
-                >
-                  {copied === r.server ? 'Copied' : 'Copy skin code'}
-                </button>
-              </div>
+            {(r.photo || r.code) && (
+              <details className="public-details">
+                <summary>Skin &amp; screenshot</summary>
+                {r.photo && (
+                  <img
+                    src={`${r.photo}?v=${data.revision}`}
+                    alt={`${r.species || 'Dinosaur'} screenshot shared by owner`}
+                  />
+                )}{' '}
+                {r.code && (
+                  <div className="public-code">
+                    <label>
+                      Skin code
+                      <textarea readOnly value={r.code} />
+                    </label>
+                    <button
+                      className="text-button"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(r.code!);
+                          setCopied(r.server);
+                        } catch {
+                          setCopied('Select the text to copy');
+                        }
+                      }}
+                    >
+                      {copied === r.server ? 'Copied' : 'Copy skin code'}
+                    </button>
+                  </div>
+                )}
+              </details>
             )}
           </article>
         ))}
@@ -109,7 +132,7 @@ export default function SharedView({ initial }: { initial: PublicShare }) {
         <span>
           No live game connection. Records are updated by their owner.
         </span>
-        <Link href="/">Open your garage</Link>
+        <span> This profile refreshes every 15 seconds.</span>
       </footer>
     </main>
   );
