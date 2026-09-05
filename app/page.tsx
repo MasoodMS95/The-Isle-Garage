@@ -55,19 +55,19 @@ type Server = {
 const initial: Server[] = [
   {
     id: 'bosch-demo',
-    name: 'Bosch Island · Preview instance',
+    name: 'Bosch Island',
     community: 'Bosch Island',
     kind: 'Community',
     favorite: true,
     state: 'Living',
-    species: 'Ceratosaurus',
-    growth: 78,
+    species: 'Tyrannosaurus',
+    growth: 83,
     code: '',
     photo: '',
   },
   {
     id: 'pieds-demo',
-    name: 'Petits Pieds · Preview instance',
+    name: 'Petits Pieds',
     community: 'Petits Pieds',
     kind: 'Community',
     favorite: true,
@@ -91,7 +91,7 @@ const initial: Server[] = [
   },
   {
     id: 'asura-demo',
-    name: 'Asura · Preview instance',
+    name: 'Asura',
     community: 'Asura',
     kind: 'Community',
     favorite: false,
@@ -130,6 +130,13 @@ export default function Home() {
   const [servers, setServers] = useState<Server[]>(initial);
   const [ready, setReady] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [camera, setCamera] = useState(1);
+  const cameras = [
+    { name: 'Wetland perimeter', image: '/wetland.png', position: '70% 50%' },
+    { name: 'North paddock', image: '/paddock.png', position: '50% 50%' },
+    { name: 'Service access', image: '/paddock.png', position: '30% 75%' },
+    { name: 'Eastern treeline', image: '/wetland.png', position: '95% 40%' },
+  ];
   const [tab, setTab] = useState('mine');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('All servers');
@@ -229,7 +236,33 @@ export default function Home() {
           )
         )
           // oxlint-disable-next-line react/react-compiler -- Hydrate device-local data only after server hydration.
-          setServers(parsed);
+          setServers(
+            parsed.map((s: Server) => {
+              const cleanName = [
+                'bosch-demo',
+                'pieds-demo',
+                'asura-demo',
+              ].includes(s.id)
+                ? s.name.replace(' · Preview instance', '')
+                : s.name;
+              const untouchedExample =
+                s.id === 'bosch-demo' &&
+                !s.updated &&
+                s.favorite &&
+                s.state === 'Living' &&
+                s.species === 'Ceratosaurus' &&
+                s.growth === 78 &&
+                !s.code &&
+                !s.photo;
+              return {
+                ...s,
+                name: cleanName,
+                ...(untouchedExample
+                  ? { species: 'Tyrannosaurus', growth: 83 }
+                  : {}),
+              };
+            }),
+          );
       }
     } catch {}
     setReady(true);
@@ -309,20 +342,14 @@ export default function Home() {
         `${s.name}: ${s.state}${s.species ? ' — ' + s.species : ''}${s.state === 'Living' ? ' · ' + s.growth + '%' : ''}${s.code ? '\nSkin: ' + s.code : ''}`,
     )
     .join('\n\n');
-  function card(s: Server, index: number) {
+  function card(s: Server) {
     return (
       <article
         className={'server-card ' + (s.state === 'Living' ? 'living' : '')}
         key={s.id}
       >
         <div className="card-top">
-          <span className="server-number">
-            {String(index + 1).padStart(2, '0')}
-          </span>
           <div className="server-identity">
-            <span className="eyebrow">
-              {s.kind === 'Official' ? 'OFFICIAL SERVER' : s.community}
-            </span>
             <h3>{s.name}</h3>
           </div>
           <button
@@ -353,15 +380,19 @@ export default function Home() {
               }
             >
               {s.state === 'Living'
-                ? '●  LIVING'
+                ? '●  PARKED'
                 : s.state === 'Dead'
-                  ? 'LAST DINOSAUR · DEAD'
+                  ? 'DEAD'
                   : s.state.toUpperCase()}
             </span>
-            <h4>{s.species || 'A new beginning'}</h4>
+            <h4>
+              {s.species === 'Tyrannosaurus'
+                ? 'T-Rex'
+                : s.species || 'No dinosaur'}
+            </h4>
             <span className="record-note">
               {s.state === 'No dinosaur'
-                ? 'Keep this server close. Add a dinosaur whenever you’re ready.'
+                ? 'Ready for your next dinosaur.'
                 : s.updated
                   ? 'Manually updated ' +
                     new Date(s.updated).toLocaleDateString()
@@ -388,13 +419,6 @@ export default function Home() {
           />
         )}
         <div className="card-bottom">
-          <span>
-            {s.state === 'Living'
-              ? 'Tracked in your garage'
-              : s.state === 'Dead'
-                ? 'Your next story starts here'
-                : 'Favorite server'}
-          </span>
           <button
             className="text-button"
             onClick={() =>
@@ -426,207 +450,277 @@ export default function Home() {
       <div className="world" aria-hidden="true" />
       <div className="world-shade" aria-hidden="true" />
       <div className="mist" aria-hidden="true" />
-      <header className="topbar">
-        <Link className="brand" href="/" aria-label="The Isle Garage home">
-          <span className="brand-mark">
-            <Leaf size={25} />
-          </span>
-          <span>
-            THE ISLE<span className="brand-sub">GARAGE</span>
-          </span>
-        </Link>
-        <span className="edition">EVRIMA COMPANION</span>
-        <button className="profile" onClick={() => setInfo(true)}>
-          <span className="avatar">G</span>
-          <span>
-            Guest explorer<small>Design preview</small>
-          </span>
-          <ChevronRight size={15} />
-        </button>
-      </header>
-      <div className="workspace">
-        <section className="main-panel">
-          <div className="page-heading">
-            <span className="eyebrow moss">YOUR NEXT CHAPTER</span>
-            <h1>
-              Leave a footprint.
-              <br />
-              <em>Find your way back.</em>
-            </h1>
-            <p>Your dinosaurs. Your favorite places. All in one garage.</p>
-          </div>
-          <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
-            <div className="tab-row">
-              <TabsList variant="line">
-                <TabsTrigger value="mine">
-                  <Star size={15} />
-                  My Servers <span className="count">{favorites.length}</span>
-                </TabsTrigger>
-                <TabsTrigger value="discover">
-                  <Compass size={16} />
-                  Discover
-                </TabsTrigger>
-              </TabsList>
-              <button
-                className="icon-button"
-                aria-label="Preview shared garage"
-                onClick={() => setShare(true)}
-              >
-                <Share2 size={18} />
-              </button>
-            </div>
-            <TabsContent value="mine">
-              <div className="section-caption">
-                <span>
-                  {alive} living {alive === 1 ? 'dinosaur' : 'dinosaurs'}{' '}
-                  <b>·</b> {favorites.length} favorite servers
+      <div className="terminal-shell">
+        <header className="topbar">
+          <Link className="brand" href="/" aria-label="The Isle Garage home">
+            <span className="brand-mark">
+              <Leaf size={25} />
+            </span>
+            <span>
+              THE ISLE<span className="brand-sub">GARAGE</span>
+            </span>
+          </Link>
+          <span className="edition">PARK OPERATIONS / PERSONAL TERMINAL</span>
+          <button className="profile" onClick={() => setInfo(true)}>
+            <span className="avatar">G</span>
+            <span>
+              Guest operator<small>Local session</small>
+            </span>
+            <ChevronRight size={15} />
+          </button>
+        </header>
+        <div className="workspace">
+          <section className="main-panel">
+            <div className="page-heading">
+              <span className="eyebrow moss">PERSONAL RECORDS / 01</span>
+              <h1>
+                My garage
+                <span className="terminal-cursor" aria-hidden="true">
+                  _
                 </span>
+              </h1>
+              <p>EVRIMA · MANUAL TRACKING</p>
+            </div>
+            <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
+              <div className="tab-row">
+                <TabsList variant="line">
+                  <TabsTrigger value="mine">
+                    <Star size={15} />
+                    My Servers <span className="count">{favorites.length}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="discover">
+                    <Compass size={16} />
+                    Discover
+                  </TabsTrigger>
+                </TabsList>
                 <button
-                  className="text-button"
-                  onClick={() => setTab('discover')}
+                  className="icon-button"
+                  aria-label="Preview shared garage"
+                  onClick={() => setShare(true)}
                 >
-                  <Plus size={15} />
-                  Add server
+                  <Share2 size={18} />
                 </button>
               </div>
-              <div className="server-list">
-                {favorites.map(card)}
-                {favorites.length === 0 && (
-                  <div className="empty">
-                    <Compass size={32} />
-                    <h3>Make yourself at home.</h3>
-                    <p>Favorite a server to begin your garage.</p>
-                    <button
-                      className="primary-button"
-                      onClick={() => setTab('discover')}
-                    >
-                      Discover servers
-                    </button>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-            <TabsContent value="discover">
-              <div className="search-row">
-                <label className="search">
-                  <Search size={17} />
-                  <input
-                    aria-label="Search servers"
-                    placeholder="Find your next home…"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                  />
-                </label>
-                <Select
-                  value={filter}
-                  onValueChange={(v) => setFilter(v || 'All servers')}
-                >
-                  <SelectTrigger aria-label="Server type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {['All servers', 'Official', 'Community', 'Custom'].map(
-                      (v) => (
-                        <SelectItem key={v} value={v}>
-                          {v}
-                        </SelectItem>
-                      ),
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <p className="catalog-note">
-                Curated preview directory · community preview instances are
-                illustrative.
-              </p>
-              <div className="directory-list">
-                {filtered.map((s) => (
-                  <article className="directory-item" key={s.id}>
-                    <Globe2 size={21} />
-                    <div>
-                      <h3>{s.name}</h3>
-                      <span>
-                        {s.kind} · {s.community}
-                      </span>
-                    </div>
-                    <button
-                      className="icon-button"
-                      aria-label={
-                        (s.favorite ? 'Unfavorite ' : 'Favorite ') + s.name
-                      }
-                      aria-pressed={s.favorite}
-                      onClick={() => toggleFavorite(s)}
-                    >
-                      <Star
-                        size={18}
-                        fill={s.favorite ? 'currentColor' : 'none'}
-                      />
-                    </button>
-                  </article>
-                ))}
-                {filtered.length === 0 && (
-                  <p className="empty">No matching servers. Add yours below.</p>
-                )}
-              </div>
-              <form
-                className="manual-add"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  addCustom();
-                }}
-              >
-                <label htmlFor="custom">Can’t find your server?</label>
-                <div>
-                  <input
-                    id="custom"
-                    placeholder="Enter its exact name"
-                    maxLength={100}
-                    value={custom}
-                    onChange={(e) => setCustom(e.target.value)}
-                  />
-                  <button className="primary-button" disabled={!custom.trim()}>
+              <TabsContent value="mine">
+                <div className="section-caption">
+                  <span>
+                    {alive} living {alive === 1 ? 'dinosaur' : 'dinosaurs'}{' '}
+                    <b>·</b> {favorites.length} favorite servers
+                  </span>
+                  <button
+                    className="text-button"
+                    onClick={() => setTab('discover')}
+                  >
+                    <Plus size={15} />
                     Add server
                   </button>
                 </div>
-              </form>
-            </TabsContent>
-          </Tabs>
-          <div className="local-note">
-            <span className="small-dot" />
-            Prototype · saved in this browser only. Parking tracks a record; it
-            does not save a dinosaur in-game.
-          </div>
-        </section>
-        <aside className="scene-caption">
-          <span className="eyebrow">SOMEWHERE ON THE ISLAND</span>
-          <h2>
-            The wild
-            <br />
-            remembers.
-          </h2>
-          <div className="scene-rule" />
-          <p>
-            A quiet place between
-            <br />
-            your next adventures.
-          </p>
-        </aside>
+                <div className="server-list">
+                  {favorites.map(card)}
+                  {favorites.length === 0 && (
+                    <div className="empty">
+                      <Compass size={32} />
+                      <h3>Make yourself at home.</h3>
+                      <p>Favorite a server to begin your garage.</p>
+                      <button
+                        className="primary-button"
+                        onClick={() => setTab('discover')}
+                      >
+                        Discover servers
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              <TabsContent value="discover">
+                <div className="search-row">
+                  <label className="search">
+                    <Search size={17} />
+                    <input
+                      aria-label="Search servers"
+                      placeholder="Find your next home…"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                    />
+                  </label>
+                  <Select
+                    value={filter}
+                    onValueChange={(v) => setFilter(v || 'All servers')}
+                  >
+                    <SelectTrigger aria-label="Server type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {['All servers', 'Official', 'Community', 'Custom'].map(
+                        (v) => (
+                          <SelectItem key={v} value={v}>
+                            {v}
+                          </SelectItem>
+                        ),
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="catalog-note">
+                  Curated preview directory · community preview instances are
+                  illustrative.
+                </p>
+                <div className="directory-list">
+                  {filtered.map((s) => (
+                    <article className="directory-item" key={s.id}>
+                      <Globe2 size={21} />
+                      <div>
+                        <h3>{s.name}</h3>
+                        <span>
+                          {s.kind} · {s.community}
+                        </span>
+                      </div>
+                      <button
+                        className="icon-button"
+                        aria-label={
+                          (s.favorite ? 'Unfavorite ' : 'Favorite ') + s.name
+                        }
+                        aria-pressed={s.favorite}
+                        onClick={() => toggleFavorite(s)}
+                      >
+                        <Star
+                          size={18}
+                          fill={s.favorite ? 'currentColor' : 'none'}
+                        />
+                      </button>
+                    </article>
+                  ))}
+                  {filtered.length === 0 && (
+                    <p className="empty">
+                      No matching servers. Add yours below.
+                    </p>
+                  )}
+                </div>
+                <form
+                  className="manual-add"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    addCustom();
+                  }}
+                >
+                  <label htmlFor="custom">Can’t find your server?</label>
+                  <div>
+                    <input
+                      id="custom"
+                      placeholder="Enter its exact name"
+                      maxLength={100}
+                      value={custom}
+                      onChange={(e) => setCustom(e.target.value)}
+                    />
+                    <button
+                      className="primary-button"
+                      disabled={!custom.trim()}
+                    >
+                      Add server
+                    </button>
+                  </div>
+                </form>
+              </TabsContent>
+            </Tabs>
+            <div className="local-note">
+              <span className="small-dot" />
+              Demo records · saved in this browser only. Parking tracks a
+              record; it does not save a dinosaur in-game.
+            </div>
+          </section>
+          <aside
+            className="observation-panel"
+            aria-label="Simulated dinosaur park observation terminal"
+          >
+            <div className="observation-header">
+              <span>Somewhere on The Isle</span>
+              <span className="demo-marker">DEMO FEED</span>
+            </div>
+            <fieldset className="camera-strip" aria-label="Observation stills">
+              {cameras.map((cam, index) => (
+                <button
+                  className={
+                    'camera-button ' + (camera === index ? 'selected' : '')
+                  }
+                  key={cam.name}
+                  aria-pressed={camera === index}
+                  aria-label={'View ' + cam.name + ' illustration'}
+                  onClick={() => setCamera(index)}
+                >
+                  <img
+                    src={cam.image}
+                    alt=""
+                    style={{ objectPosition: cam.position }}
+                  />
+                  <span>CAM / 0{index + 1}</span>
+                </button>
+              ))}
+            </fieldset>
+            <div className={'camera-feed camera-' + camera}>
+              <img
+                src={cameras[camera].image}
+                alt={
+                  'Original illustrative dinosaur park still: ' +
+                  cameras[camera].name
+                }
+                style={{ objectPosition: cameras[camera].position }}
+              />
+              <div className="scanlines" aria-hidden="true" />
+              <div className="scan-sweep" aria-hidden="true" />
+              <div className="feed-top">
+                <span>CAM 0{camera + 1} / PARK PERIMETER</span>
+                <span>SIMULATION</span>
+              </div>
+              <span className="reticle reticle-tl" aria-hidden="true" />
+              <span className="reticle reticle-tr" aria-hidden="true" />
+              <span className="reticle reticle-bl" aria-hidden="true" />
+              <span className="reticle reticle-br" aria-hidden="true" />
+              <div className="feed-bottom">
+                <span>{cameras[camera].name.toUpperCase()}</span>
+                <span>FRAME 00{184 + camera}</span>
+              </div>
+            </div>
+            <div className="feed-status">
+              <span>
+                <i />
+                OBSERVATION MODE
+              </span>
+              <span>{paused ? 'EFFECTS PAUSED' : 'DISPLAY ACTIVE'}</span>
+            </div>
+            <p className="simulation-note">
+              Original still artwork with simulated display effects. No live
+              camera or game connection.
+            </p>
+            <div className="terminal-readout">
+              <span>GARAGE INDEX</span>
+              <div>
+                <strong>{String(favorites.length).padStart(2, '0')}</strong>
+                <span>SAVED SERVERS</span>
+                <strong>{String(alive).padStart(2, '0')}</strong>
+                <span>LIVING RECORDS</span>
+                <button className="text-button" onClick={() => setShare(true)}>
+                  SHARE PREVIEW <ArrowUpRight size={14} />
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+        <footer>
+          <span>
+            THE ISLE GARAGE <b>/</b> UNOFFICIAL FAN PROJECT
+          </span>
+          <button
+            className="motion-control"
+            aria-pressed={paused}
+            onClick={() => setPaused((v) => !v)}
+          >
+            {paused ? <Play size={14} /> : <Pause size={14} />}{' '}
+            {paused ? 'Resume effects' : 'Pause effects'}
+          </button>
+          <MenuSound />
+          <span className="art-credit">Original illustrative artwork</span>
+        </footer>
       </div>
-      <footer>
-        <span>
-          THE ISLE GARAGE <b>/</b> UNOFFICIAL FAN PROJECT
-        </span>
-        <button
-          className="motion-control"
-          aria-pressed={paused}
-          onClick={() => setPaused((v) => !v)}
-        >
-          {paused ? <Play size={14} /> : <Pause size={14} />}{' '}
-          {paused ? 'Resume atmosphere' : 'Pause atmosphere'}
-        </button>
-        <MenuSound />
-        <span className="art-credit">Original illustrative artwork</span>
-      </footer>
       <Dialog
         open={!!edit}
         onOpenChange={(open) => {
@@ -634,7 +728,7 @@ export default function Home() {
         }}
       >
         <DialogContent className="garage-dialog">
-          <DialogTitle>Make a little room.</DialogTitle>
+          <DialogTitle>Dinosaur record</DialogTitle>
           <DialogDescription>
             {edit?.name} · manually tracked dinosaur
           </DialogDescription>
@@ -809,7 +903,7 @@ export default function Home() {
       </Dialog>
       <Dialog open={share} onOpenChange={setShare}>
         <DialogContent className="garage-dialog">
-          <DialogTitle>Your garage, together.</DialogTitle>
+          <DialogTitle>Garage transmission</DialogTitle>
           <DialogDescription>
             Sharing preview · no Discord connection or public link yet.
           </DialogDescription>
@@ -853,7 +947,7 @@ export default function Home() {
       </Dialog>
       <Dialog open={info} onOpenChange={setInfo}>
         <DialogContent className="garage-dialog">
-          <DialogTitle>Welcome, explorer.</DialogTitle>
+          <DialogTitle>Operator session</DialogTitle>
           <DialogDescription>
             This is an interactive design preview.
           </DialogDescription>
