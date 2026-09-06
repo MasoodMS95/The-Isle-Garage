@@ -117,6 +117,10 @@ The backend verifies the bot identity and message author before editing. It neve
 
 Deploy after changing production runtime variables. Keep tokens and local environment files out of source control. See [.env.example](.env.example) for the non-secret configuration template.
 
+## Branch workflow
+
+Use **main** as the canonical branch. Name development branches after their milestone or goal, for example **milestone/account-sharing** or **goal/mobile-layout**.
+
 ## Project structure
 
 | Path | Purpose |
