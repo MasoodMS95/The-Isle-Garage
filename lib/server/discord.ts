@@ -1,21 +1,21 @@
 import { recordSummary } from '../garage-model';
-import { env } from 'cloudflare:workers';
+
 import { db, origin } from './runtime';
 import { publicData, type ShareRow } from './garage';
 export function discordConfigured() {
   return (
-    env.DISCORD_SYNC_ENABLED === 'true' &&
-    !!env.DISCORD_BOT_TOKEN &&
-    !!env.DISCORD_CHANNEL_ID &&
-    !!env.DISCORD_MESSAGE_ID &&
-    !!env.DISCORD_SHARE_ID &&
-    !!env.DISCORD_OWNER_ID
+    process.env.DISCORD_SYNC_ENABLED === 'true' &&
+    !!process.env.DISCORD_BOT_TOKEN &&
+    !!process.env.DISCORD_CHANNEL_ID &&
+    !!process.env.DISCORD_MESSAGE_ID &&
+    !!process.env.DISCORD_SHARE_ID &&
+    !!process.env.DISCORD_OWNER_ID
   );
 }
 export async function syncDiscord(ownerId: string) {
-  if (!discordConfigured() || env.DISCORD_OWNER_ID !== ownerId)
+  if (!discordConfigured() || process.env.DISCORD_OWNER_ID !== ownerId)
     return 'not_configured';
-  const id = env.DISCORD_SHARE_ID!;
+  const id = process.env.DISCORD_SHARE_ID!;
   const share = await db()
     .prepare('SELECT * FROM shares WHERE id=? AND owner_id=?')
     .bind(id, ownerId)
@@ -23,7 +23,7 @@ export async function syncDiscord(ownerId: string) {
   if (!share) return 'not_configured';
   if (share.next_attempt > Date.now()) return 'rate_limited';
   const headers = {
-    Authorization: `Bot ${env.DISCORD_BOT_TOKEN}`,
+    Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
     'Content-Type': 'application/json',
   };
   const status = async (value: string, next = 0) => {
@@ -49,7 +49,7 @@ export async function syncDiscord(ownerId: string) {
     }
     if (!identity.ok) return status('configuration_error');
     const me = (await identity.json()) as { id: string };
-    const endpoint = `https://discord.com/api/v10/channels/${env.DISCORD_CHANNEL_ID}/messages/${env.DISCORD_MESSAGE_ID}`;
+    const endpoint = `https://discord.com/api/v10/channels/${process.env.DISCORD_CHANNEL_ID}/messages/${process.env.DISCORD_MESSAGE_ID}`;
     const existing = await fetch(endpoint, {
       headers,
       signal: AbortSignal.timeout(5000),

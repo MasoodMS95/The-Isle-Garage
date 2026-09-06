@@ -1,0 +1,53 @@
+# Review costs and supply secrets before applying. This file provisions paid services.
+services:
+  - type: web
+    name: isle-garage
+    runtime: docker
+    repo: https://github.com/MasoodMS95/The-Isle-Garage.git
+    branch: main
+    region: oregon
+    plan: 0.5c-512mb
+    autoDeployTrigger: off
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_ORIGIN
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: isle-garage-db
+          property: connectionString
+      - key: DATABASE_SSL
+        value: private
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_FORCE_PATH_STYLE
+        value: "false"
+      - key: DISCORD_SYNC_ENABLED
+        value: "false"
+databases:
+  - name: isle-garage-db
+    region: oregon
+    plan: 0.1c-256mb
+    diskSizeGB: 1
+    postgresMajorVersion: "17"
+    ipAllowList: []
