@@ -1,20 +1,22 @@
 import { growthText } from '../garage-model';
 /* oxlint-disable next/no-img-element -- ImageResponse consumes raster data directly, not Next image components. */
 import { ImageResponse } from 'next/og';
-import { Buffer } from 'node:buffer';
-import { publicData, publicPhoto } from './garage';
+import { publicData } from './garage';
+import { speciesArtwork } from '../species-art';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { json, noStore } from './runtime';
 export async function garageImage(id: string) {
   const data = await publicData(id);
   if (!data) return json({ error: 'Share unavailable' }, 404);
-  let photo: string | undefined;
-  const imageRecord = data.records.find((r) => r.photo);
-  if (imageRecord?.photo) {
-    const recordId = decodeURIComponent(imageRecord.photo.split('/').at(-1)!);
-    const object = await publicPhoto(id, recordId);
-    if (object)
-      photo = `data:${object.httpMetadata?.contentType};base64,${Buffer.from(await object.arrayBuffer()).toString('base64')}`;
-  }
+  const imageRecord = data.records.find((r) => r.state !== 'No dinosaur');
+  const artwork = imageRecord ? speciesArtwork(imageRecord.species) : undefined;
+  const photo = artwork
+    ? 'data:image/svg+xml;base64,' +
+      (
+        await readFile(path.join(process.cwd(), 'public', artwork.src))
+      ).toString('base64')
+    : undefined;
   return new ImageResponse(
     <div
       style={{
@@ -86,10 +88,10 @@ export async function garageImage(id: string) {
         {photo && (
           <img
             src={photo}
-            alt="Owner-shared dinosaur"
+            alt={artwork?.alt}
             width={320}
             height={265}
-            style={{ objectFit: 'cover' }}
+            style={{ objectFit: 'contain' }}
           />
         )}
       </div>

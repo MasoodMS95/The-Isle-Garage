@@ -2639,3 +2639,31 @@ footer {
   gap: 20px;
   flex-wrap: wrap;
 }
+
+/* Bundled species artwork is decorative context; record state remains explicit text. */
+.dino-symbol:has(img) {
+  width: 112px;
+  height: 70px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 0;
+}
+.dino-symbol img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.species-preview {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  margin: 12px 0;
+  border-radius: 12px;
+}
+@media (max-width: 480px) {
+  .dino-symbol:has(img) {
+    width: 80px;
+    height: 50px;
+  }
+}

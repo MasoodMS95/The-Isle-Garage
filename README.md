@@ -10,22 +10,22 @@ A private, manually maintained dinosaur garage for **The Isle: Evrima**, with se
 - Growth as **1–100%** or **Juvie / Adolescent / Adult / Full grown**, without automatic conversion.
 - Independent **PRIME** status, with a text badge and gold accent.
 - Stable read-only profiles; explicitly selected records refresh every 15 seconds.
-- Optional skin codes, private screenshots, and opt-in account labels.
+- Optional skin codes and opt-in account labels; bundled species illustrations.
 - Open Graph PNG previews and optional edits to one configured bot-owned Discord message.
 
 This unofficial fan project does not connect to live game data or implement Steam authentication.
 
 ## Runtime and login
 
-This milestone replaces Sites/Workers and ChatGPT sign-in with **Next.js 16 on Node.js**, **PostgreSQL**, **private S3-compatible storage**, and **Better Auth email/password login**.
+This milestone replaces Sites/Workers and ChatGPT sign-in with **Next.js 16 on Node.js**, **PostgreSQL**, **Better Auth email/password login**.
 
-Email verification is mandatory. Passwords use a maintained Argon2id adapter with 19 MiB memory, two iterations, and one lane. Production requires email delivery, HTTPS, private image storage, and an explicit database TLS policy.
+Email verification is mandatory. Passwords use a maintained Argon2id adapter with 19 MiB memory, two iterations, and one lane. Production requires email delivery, HTTPS and an explicit database TLS policy.
 
 The migration is prepared for Render, with a portable Docker image. This branch does not provision paid services or remove the previous hosted app/data.
 
 ## Development
 
-Use Node.js 24 and npm. Copy [.env.example](.env.example) to an ignored .env file and configure PostgreSQL, a random auth secret, SMTP, and a private bucket.
+Use Node.js 24 and npm. Copy [.env.example](.env.example) to an ignored .env file and configure PostgreSQL, a random auth secret, and SMTP.
 
 ```sh
 npm ci
@@ -42,7 +42,7 @@ npm run build
 npm audit
 ```
 
-See [testing](docs/TESTING.md) for the real PostgreSQL/S3/SMTP integration test. Historical Worker configurations are retained for migration reference, not as the current runtime.
+See [testing](docs/TESTING.md) for the real PostgreSQL/SMTP integration test. Historical Worker configurations are retained for migration reference, not as the current runtime.
 
 ## Sharing privacy
 
@@ -50,7 +50,7 @@ Private routes authorize the signed-in owner. Public routes construct a selected
 
 Links bind to persistent account/server IDs. Switching tabs or renaming labels cannot change their selected account. Emails, login identities, private favorite lists, and unselected records are not public fields.
 
-Skin codes, screenshots, and account labels are excluded unless enabled. Revocation blocks future page/API/image access; third-party preview caches cannot be erased by this app.
+Skin codes and account labels are excluded unless enabled. Revocation blocks future page/API/image access; third-party preview caches cannot be erased by this app.
 
 ## Deployment and operations
 
@@ -73,10 +73,18 @@ GitHub is the only source destination. Use **main** as canonical and milestone/g
 | app/share-manager.tsx              | Explicit sharing                            |
 | app/s/[id]/                        | Public profiles and protected images        |
 | lib/auth.ts                        | Password/session/verification policy        |
-| lib/server/                        | PostgreSQL, S3, mail, ownership, projection |
+| lib/server/                        | PostgreSQL, mail, ownership, projection |
 | migrations/postgres/               | Application SQL                             |
 | scripts/                           | Startup checks, migrations, legacy transfer |
 | tests/security.integration.ts      | Real local integration tests                |
 | legacy/                            | Previous platform reference                 |
 
 Credentials, databases, builds, and temporary exports are excluded from Git. Never commit actual user emails, passwords, tokens, mail payloads, or backups.
+
+## Dinosaur artwork
+
+The garage, public profiles and Discord preview use bundled SVG illustrations for all 22 species in the selector. Other species retain their names and display an artwork-unavailable fallback. These original stylized silhouettes are not official game art or skin previews. See public/dinosaurs/README.md for coverage and provenance.
+
+Screenshot uploads and their sharing setting are retired. Old private image endpoints always return 404, and saved image references are stripped from responses and subsequent saves. No S3/R2 account, bucket or credentials are needed. Existing remote objects/backups are untouched; any later cleanup requires a separately verified inventory.
+
+The directory includes 27 unlocked official servers observed in user-provided in-game screenshots. Existing server IDs, favorites and records are preserved; no live population or availability is implied. See [server evidence](docs/SERVERS.md) and [species evidence](docs/SPECIES.md).

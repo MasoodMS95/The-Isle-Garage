@@ -26,7 +26,6 @@ export type Share = {
   title: string;
   selectedIds: string[];
   includeCodes: boolean;
-  includePhotos: boolean;
   includeAccountLabels: boolean;
   active: boolean;
   updatedAt: string;
@@ -38,7 +37,6 @@ export type PublicRecord = Omit<Dinosaur, 'code' | 'photo' | 'updated'> & {
   updatedAt: string | null;
   accountLabel?: string;
   code?: string;
-  photo?: string;
 };
 export type PublicShare = {
   id: string;

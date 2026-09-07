@@ -1,6 +1,12 @@
 'use client';
-/* oxlint-disable next/no-img-element -- User-selected browser-local data URLs need no image service. */
+/* oxlint-disable next/no-img-element -- Bundled artwork needs no image service. */
 import Link from 'next/link';
+import {
+  directoryServers,
+  officialDisplay,
+  matchesServerQuery,
+} from '@/lib/server-catalog';
+import { speciesArtwork, speciesList } from '@/lib/species-art';
 import { authClient } from '@/lib/auth-client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -20,16 +26,13 @@ import {
   ChevronRight,
   Compass,
   Copy,
-  Feather,
   Leaf,
   Pause,
   Play,
   Plus,
   Search,
   Share2,
-  Skull,
   Star,
-  X,
 } from 'lucide-react';
 import {
   Dialog,
@@ -109,18 +112,6 @@ const initial: Server[] = [
     photo: '',
   },
 ];
-const speciesList = [
-  'Ceratosaurus',
-  'Omniraptor',
-  'Carnotaurus',
-  'Deinosuchus',
-  'Diabloceratops',
-  'Dilophosaurus',
-  'Pteranodon',
-  'Stegosaurus',
-  'Tenontosaurus',
-  'Tyrannosaurus',
-];
 export default function Garage({
   initialRecords,
   initialAccounts,
@@ -133,7 +124,9 @@ export default function Garage({
   ownerName: string;
 }) {
   const [allServers, setAllServers] = useState<Server[]>(
-    (initialRecords || initial).map((s) => ({ ...s, ...dino(s) })),
+    (initialRecords || initial).map((s) =>
+      officialDisplay({ ...s, ...dino(s) }),
+    ),
   );
   const [accounts, setAccounts] = useState(initialAccounts);
   const [accountId, selectAccount] = useState('main');
@@ -330,7 +323,11 @@ export default function Garage({
   }, [notice]);
   function update(server: Server) {
     markChanged();
-    setServers((old) => old.map((s) => (s.id === server.id ? server : s)));
+    setServers((old) =>
+      old.some((s) => s.id === server.id)
+        ? old.map((s) => (s.id === server.id ? server : s))
+        : [...old, server],
+    );
   }
   function toggleFavorite(server: Server) {
     update({ ...server, favorite: !server.favorite });
@@ -385,10 +382,10 @@ export default function Garage({
   }
   const favorites = servers.filter((s) => s.favorite);
   const alive = favorites.filter((s) => s.state === 'Living').length;
-  const filtered = servers.filter(
+  const filtered = directoryServers(servers).filter(
     (s) =>
       (filter === 'All servers' || s.kind === filter) &&
-      `${s.name} ${s.community}`.toLowerCase().includes(query.toLowerCase()),
+      matchesServerQuery(s, query),
   );
 
   function card(s: Server) {
@@ -414,12 +411,15 @@ export default function Garage({
           <div
             className={'dino-symbol ' + s.state.toLowerCase().replace(' ', '-')}
           >
-            {s.state === 'Living' ? (
-              <Feather />
-            ) : s.state === 'Dead' ? (
-              <Skull />
-            ) : (
+            {s.state === 'No dinosaur' ? (
               <Plus />
+            ) : (
+              <img
+                src={speciesArtwork(s.species).src}
+                alt={speciesArtwork(s.species).alt}
+                width={112}
+                height={70}
+              />
             )}
           </div>
           <div className="dino-identity">
@@ -686,8 +686,8 @@ export default function Garage({
                   </Select>
                 </div>
                 <p className="catalog-note">
-                  Curated preview directory · community preview instances are
-                  illustrative.
+                  Official servers from in-game observations · availability is
+                  not live. Community preview instances are illustrative.
                 </p>
                 <div className="directory-list">
                   {filtered.map((s) => (
@@ -874,6 +874,12 @@ export default function Garage({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      {edit.species &&
+                        !speciesList.some((v) => v === edit.species) && (
+                          <SelectItem value={edit.species}>
+                            {edit.species}
+                          </SelectItem>
+                        )}
                       {speciesList.map((v) => (
                         <SelectItem key={v} value={v}>
                           {v}
@@ -996,45 +1002,14 @@ export default function Garage({
                   Copy skin code
                 </button>
               )}
-              <label className="upload">
-                Screenshot{' '}
-                <span className="optional">optional · up to 1 MB</span>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    if (file.size > 1000000) {
-                      // oxlint-disable-next-line react/react-compiler -- Surface an external storage failure.
-                      setNotice('Choose an image under 1 MB.');
-                      return;
-                    }
-                    const reader = new FileReader();
-                    reader.onload = () =>
-                      setEdit({
-                        ...edit,
-                        photo:
-                          typeof reader.result === 'string'
-                            ? reader.result
-                            : '',
-                      });
-                    reader.readAsDataURL(file);
-                  }}
+              {edit.state !== 'No dinosaur' && (
+                <img
+                  className="species-preview"
+                  src={speciesArtwork(edit.species).src}
+                  alt={speciesArtwork(edit.species).alt}
+                  width={320}
+                  height={200}
                 />
-              </label>
-              {edit.photo && (
-                <div className="photo-preview">
-                  <img src={edit.photo} alt="Your dinosaur screenshot" />
-                  <button
-                    type="button"
-                    className="icon-button"
-                    aria-label="Remove screenshot"
-                    onClick={() => setEdit({ ...edit, photo: '' })}
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
               )}
               <div className="form-actions">
                 <button

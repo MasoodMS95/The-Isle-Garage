@@ -1,8 +1,6 @@
 import { database } from './database';
-import { objectFiles } from './storage';
 import { appOrigin } from './config';
 export const db = database;
-export const files = objectFiles;
 export const noStore = {
   'Cache-Control': 'no-store, max-age=0',
   'X-Content-Type-Options': 'nosniff',
