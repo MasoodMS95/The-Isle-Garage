@@ -91,6 +91,12 @@ The directory includes 27 unlocked official servers observed in user-provided in
 
 ## New garages and interface styling
 
-New accounts start with an empty garage and no favorite servers or sample dinosaurs. Discover still lists the official directory and existing illustrative community entries, all unfavorited and without dinosaur records. Existing saved records are preserved, including records resembling old demo values; there is no automatic database cleanup. Old browser records are only imported by an explicit user action and are never automatically seeded.
+New accounts start with an empty garage and no favorite servers or sample dinosaurs. Discover still lists the official directory and existing illustrative unofficial entries, all unfavorited and without dinosaur records. Existing saved records are preserved, including records resembling old demo values; there is no automatic database cleanup. Old browser records are only imported by an explicit user action and are never automatically seeded.
 
 Tailwind 4 is compiled through postcss.config.mjs using @tailwindcss/postcss. Keep this configuration in production builds: shared dialogs, selects and tabs depend on generated utilities for positioning, focus styling and spacing.
+
+## Development workflow
+
+Use main as the canonical branch and milestone/... or goal/... for development. Validate the work, then merge into main within the user's authorization. Do not create pull requests. An approval rejection must be resolved before merging; a direct merge is never a workaround for a rejected action.
+
+The visible Unofficial category maps to the existing stored Community value, preserving IDs, favorites and records.

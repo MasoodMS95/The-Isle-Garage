@@ -1,10 +1,12 @@
 'use client';
 /* oxlint-disable next/no-img-element -- Bundled artwork needs no image service. */
 import Link from 'next/link';
+import { cameraStills as cameras } from '@/lib/camera-stills';
 import {
   directoryServers,
   officialDisplay,
   matchesServerQuery,
+  serverKindLabel,
 } from '@/lib/server-catalog';
 import { speciesArtwork, speciesList } from '@/lib/species-art';
 import { authClient } from '@/lib/auth-client';
@@ -98,12 +100,6 @@ export default function Garage({
   const saveChain = useRef(Promise.resolve());
   const [paused, setPaused] = useState(false);
   const [camera, setCamera] = useState(1);
-  const cameras = [
-    { name: 'Wetland perimeter', image: '/wetland.png', position: '70% 50%' },
-    { name: 'North paddock', image: '/paddock.png', position: '50% 50%' },
-    { name: 'Service access', image: '/paddock.png', position: '30% 75%' },
-    { name: 'Eastern treeline', image: '/wetland.png', position: '95% 40%' },
-  ];
   const [tab, setTab] = useState('mine');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('All servers');
@@ -616,7 +612,7 @@ export default function Garage({
                       {['All servers', 'Official', 'Community', 'Custom'].map(
                         (v) => (
                           <SelectItem key={v} value={v}>
-                            {v}
+                            {serverKindLabel(v)}
                           </SelectItem>
                         ),
                       )}
@@ -625,14 +621,14 @@ export default function Garage({
                 </div>
                 <p className="catalog-note">
                   Official servers from in-game observations · availability is
-                  not live. Community preview instances are illustrative.
+                  not live. Unofficial preview instances are illustrative.
                 </p>
                 <div className="directory-list">
                   {filtered.map((s) => (
                     <article className="directory-item" key={s.id}>
                       <div>
                         <h3>{s.name}</h3>
-                        <span>{s.kind}</span>
+                        <span>{serverKindLabel(s.kind)}</span>
                       </div>
                       <button
                         className="icon-button"

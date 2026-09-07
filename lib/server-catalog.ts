@@ -64,3 +64,8 @@ export function matchesServerQuery(server: Server, query: string) {
     haystack.replace(/\s/g, '').includes(normalized.replace(/\s/g, ''))
   );
 }
+
+// Presentation only: keep stored category values and existing records intact.
+export function serverKindLabel(kind: string) {
+  return kind === 'Community' ? 'Unofficial' : kind;
+}
