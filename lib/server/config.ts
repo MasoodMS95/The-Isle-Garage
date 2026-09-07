@@ -26,10 +26,6 @@ export function assertProductionConfig() {
     'SMTP_USER',
     'SMTP_PASSWORD',
     'MAIL_FROM',
-    'S3_BUCKET',
-    'S3_REGION',
-    'S3_ACCESS_KEY_ID',
-    'S3_SECRET_ACCESS_KEY',
   ];
   const missing = required.filter((key) => !process.env[key]);
   if (missing.length)
@@ -49,9 +45,4 @@ export function assertProductionConfig() {
   }
   if (process.env.SMTP_ALLOW_INSECURE === 'true')
     throw new Error('Production SMTP must verify TLS');
-  if (
-    process.env.S3_ENDPOINT &&
-    !process.env.S3_ENDPOINT.startsWith('https://')
-  )
-    throw new Error('Production object storage requires HTTPS');
 }

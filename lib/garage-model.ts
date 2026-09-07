@@ -19,7 +19,7 @@ export function dino(r: Dinosaur): Dinosaur {
     growthStage: r.growthStage || '',
     prime: !!r.prime,
     code: r.code,
-    photo: r.photo,
+    photo: '', // Discard retired private upload references, including legacy records.
     updated: r.updated,
   };
 }

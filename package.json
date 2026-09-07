@@ -15,7 +15,6 @@
     "test:security": "tsx tests/security.integration.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1127.0",
     "@base-ui/react": "1.7.0",
     "@node-rs/argon2": "2.2.0",
     "@shadcn/react": "0.3.0",

@@ -45,7 +45,6 @@ export async function PUT(request: Request) {
     const accounts = validateAccounts(data.accounts, clientAccounts(old));
     const records = await validateRecords(
       data.records,
-      id,
       clientRecords(old) || [],
       accounts,
     );

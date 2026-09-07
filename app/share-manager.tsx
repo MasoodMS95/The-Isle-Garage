@@ -23,7 +23,6 @@ export default function ShareManager({
   const [accountId, setAccountId] = useState(initialAccountId);
   const [accountLabels, setAccountLabels] = useState(false);
   const [codes, setCodes] = useState(false);
-  const [photos, setPhotos] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -79,7 +78,6 @@ export default function ShareManager({
             title,
             selectedIds: selected,
             includeCodes: codes,
-            includePhotos: photos,
             includeAccountLabels: accountLabels,
           }),
         },
@@ -228,14 +226,6 @@ export default function ShareManager({
         />
         Include skin codes
       </label>
-      <label className="share-choice" htmlFor="share-photos">
-        <Checkbox
-          id="share-photos"
-          checked={photos}
-          onCheckedChange={(v) => setPhotos(!!v)}
-        />
-        Include screenshots
-      </label>
       <button
         className="primary-button"
         disabled={busy || !saved || !selected.length || !title.trim()}
@@ -347,7 +337,6 @@ export default function ShareManager({
                     setTitle(s.title);
                     setSelected(s.selectedIds);
                     setCodes(s.includeCodes);
-                    setPhotos(s.includePhotos);
                     setAccountLabels(s.includeAccountLabels);
                     setAccountId(
                       s.selectedIds[0]?.includes(':')

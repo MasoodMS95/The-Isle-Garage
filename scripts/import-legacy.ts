@@ -53,18 +53,7 @@ try {
     { id: 'main', label: 'Main' },
   ]);
   const incoming = clientRecords(row) || [];
-  for (const server of incoming)
-    for (const dino of [server, ...Object.values(server.dinosaurs || {})]) {
-      if (!dino.photo) continue;
-      const key = dino.photo.replace('/api/photos/', '');
-      if (!/^[a-f0-9-]{36}$/.test(key))
-        throw new Error('Invalid screenshot key');
-      const bytes = await readFile(path.join(directory, 'photos', key));
-      const kind =
-        bytes[0] === 137 ? 'png' : bytes[0] === 255 ? 'jpeg' : 'webp';
-      dino.photo = 'data:image/' + kind + ';base64,' + bytes.toString('base64');
-    }
-  const records = await validateRecords(incoming, newOwner, [], accounts);
+  const records = await validateRecords(incoming, [], accounts);
   const now = new Date().toISOString();
   await connection.query(
     'INSERT INTO garages(owner_id,records,version,updated_at) VALUES($1,$2,1,$3)',
@@ -84,7 +73,6 @@ try {
         title: raw.title,
         selectedIds: Array.isArray(selected) ? selected : selected.ids,
         includeCodes: !!raw.include_codes,
-        includePhotos: !!raw.include_photos,
         includeAccountLabels: Array.isArray(selected)
           ? false
           : !!selected.includeAccountLabels,

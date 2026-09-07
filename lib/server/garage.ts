@@ -1,7 +1,7 @@
 import { mainAccounts, dino, selectedRecord } from '../garage-model';
 import { stages } from '../garage-types';
 import type { Server, Share, PublicShare, GameAccount } from '../garage-types';
-import { db, files, HttpError, obj, str } from './runtime';
+import { db, HttpError, obj, str } from './runtime';
 export type GarageRow = {
   owner_id: string;
   records: string;
@@ -88,7 +88,6 @@ export function shareView(s: ShareRow): Share {
     selectedIds: selection(s).ids,
     includeAccountLabels: !!selection(s).includeAccountLabels,
     includeCodes: !!s.include_codes,
-    includePhotos: !!s.include_photos,
     active: !!s.active,
     updatedAt: s.updated_at,
     discordStatus: s.discord_status,
@@ -133,9 +132,6 @@ export async function publicData(id: string): Promise<PublicShare | null> {
           ? { accountLabel: item.account.label }
           : {}),
         ...(s.include_codes && r.code ? { code: r.code } : {}),
-        ...(s.include_photos && r.photo
-          ? { photo: '/s/' + id + '/photo/' + encodeURIComponent(key) }
-          : {}),
       },
     ];
   });
@@ -148,24 +144,8 @@ export async function publicData(id: string): Promise<PublicShare | null> {
     source: 'Manual website records',
   };
 }
-export async function publicPhoto(id: string, recordId: string) {
-  const s = await db()
-    .prepare(
-      'SELECT * FROM shares WHERE id=? AND active=1 AND include_photos=1',
-    )
-    .bind(id)
-    .first<ShareRow>();
-  if (!s || !selection(s).ids.includes(recordId)) return null;
-  const g = await getGarage(s.owner_id);
-  const r =
-    g &&
-    selectedRecord(clientRecords(g) || [], clientAccounts(g), recordId)?.record;
-  if (!r?.photo.startsWith('/api/photos/')) return null;
-  return files().get(`${s.owner_id}/${r.photo.slice('/api/photos/'.length)}`);
-}
 export async function validateRecords(
   input: unknown,
-  ownerId: string,
   old: Server[],
   accounts: GameAccount[] = mainAccounts,
 ): Promise<Server[]> {
@@ -213,44 +193,13 @@ export async function validateRecords(
       throw new HttpError(400, 'Choose a growth stage');
     if (r.prime !== undefined && typeof r.prime !== 'boolean')
       throw new HttpError(400, 'Invalid Prime status');
-    let photo = str(r.photo, 1400000);
-    if (photo.startsWith('data:')) {
-      const match =
-        /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/.exec(photo);
-      if (!match) throw new HttpError(400, 'Use PNG, JPEG, or WebP');
-      let bytes: Uint8Array;
-      try {
-        bytes = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
-      } catch {
-        throw new HttpError(400, 'Invalid image');
-      }
-      if (bytes.length > 1000000)
-        throw new HttpError(400, 'Image must be under 1 MB');
-      const valid =
-        match[1] === 'png'
-          ? bytes[0] === 137 &&
-            bytes[1] === 80 &&
-            bytes[2] === 78 &&
-            bytes[3] === 71
-          : match[1] === 'jpeg'
-            ? bytes[0] === 255 && bytes[1] === 216
-            : bytes[0] === 82 &&
-              bytes[1] === 73 &&
-              bytes[2] === 70 &&
-              bytes[3] === 70 &&
-              bytes[8] === 87 &&
-              bytes[9] === 69 &&
-              bytes[10] === 66 &&
-              bytes[11] === 80;
-      if (!valid)
-        throw new HttpError(400, 'Image content does not match its type');
-      const key = crypto.randomUUID();
-      await files().put(`${ownerId}/${key}`, bytes, {
-        httpMetadata: { contentType: `image/${match[1]}` },
-      });
-      photo = `/api/photos/${key}`;
-    } else if (photo && !old.some((v) => v.id === id && v.photo === photo))
-      throw new HttpError(400, 'Unknown screenshot');
+    // Accept an old stored reference only to discard it. New uploads/URLs are retired.
+    if (
+      r.photo &&
+      (typeof r.photo !== 'string' ||
+        !/^\/api\/photos\/[a-f0-9-]{36}$/.test(r.photo))
+    )
+      throw new HttpError(400, 'Screenshot uploads are no longer supported');
     const previous = old.find((v) => v.id === id);
     const next: Server = {
       id,
@@ -266,7 +215,7 @@ export async function validateRecords(
         growthMode === 'stage' ? (r.growthStage as Server['growthStage']) : '',
       prime: !!r.prime,
       code: str(r.code, 2000),
-      photo,
+      photo: '',
     };
     if (!next.name) throw new HttpError(400, 'Server name required');
     if (state === 'No dinosaur') {
@@ -311,7 +260,6 @@ export async function validateRecords(
             favorite: next.favorite,
           },
         ],
-        ownerId,
         priorDino ? [{ ...previous!, ...priorDino, dinosaurs: {} }] : [],
         accounts,
       );
@@ -338,10 +286,7 @@ export function shareInput(
     )
   )
     throw new HttpError(400, 'Choose existing servers to share');
-  if (
-    typeof r.includeCodes !== 'boolean' ||
-    typeof r.includePhotos !== 'boolean'
-  )
+  if (typeof r.includeCodes !== 'boolean')
     throw new HttpError(400, 'Choose sharing options');
   if (
     r.includeAccountLabels !== undefined &&
@@ -353,6 +298,6 @@ export function shareInput(
     includeAccountLabels: !!r.includeAccountLabels,
     selectedIds: [...new Set(r.selectedIds)],
     includeCodes: r.includeCodes ? 1 : 0,
-    includePhotos: r.includePhotos ? 1 : 0,
+    includePhotos: 0, // Retain the legacy SQL column without enabling old uploads.
   };
 }

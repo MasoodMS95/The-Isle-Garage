@@ -4,10 +4,17 @@ import { spawn } from 'node:child_process';
 import { SMTPServer } from 'smtp-server';
 import { simpleParser } from 'mailparser';
 import { Pool } from 'pg';
-import { S3Client, CreateBucketCommand } from '@aws-sdk/client-s3';
 import { readLimitedText } from '../lib/server/runtime';
 import { assertProductionConfig } from '../lib/server/config';
+import { speciesArtwork, speciesList } from '../lib/species-art';
 import { authOptions } from '../lib/auth';
+assert.equal(speciesList.length, 22);
+assert.equal(speciesArtwork('T-Rex').src, speciesArtwork('Tyrannosaurus').src);
+assert.equal(
+  speciesArtwork('Pachy').src,
+  speciesArtwork('Pachycephalosaurus').src,
+);
+assert.equal(speciesArtwork('Oviraptor').src, '/dinosaurs/unknown.svg');
 const origin = process.env.APP_ORIGIN!;
 // No production writes: enforce local test endpoints.
 assert.ok(
@@ -35,25 +42,6 @@ const smtp = new SMTPServer({
   },
 });
 await new Promise<void>((resolve) => smtp.listen(2529, '127.0.0.1', resolve));
-const s3 = new S3Client({
-  endpoint: process.env.S3_ENDPOINT,
-  region: process.env.S3_REGION,
-  forcePathStyle: true,
-  credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
-  },
-});
-try {
-  await s3.send(new CreateBucketCommand({ Bucket: process.env.S3_BUCKET }));
-} catch (error) {
-  if (
-    !['BucketAlreadyOwnedByYou', 'BucketAlreadyExists'].includes(
-      (error as Error).name,
-    )
-  )
-    throw error;
-}
 const child = spawn(
   process.execPath,
   ['node_modules/next/dist/bin/next', 'dev', '--webpack', '--port', '3090'],
@@ -281,7 +269,13 @@ try {
     'INSERT INTO garages(owner_id,records,version,updated_at) VALUES($1,$2,1,$3)',
     [
       accountA.user.id,
-      JSON.stringify([rec('same', 100), rec('zero', 0)]),
+      JSON.stringify([
+        {
+          ...rec('same', 100),
+          photo: '/api/photos/11111111-1111-1111-1111-111111111111',
+        },
+        rec('zero', 0),
+      ]),
       new Date().toISOString(),
     ],
   );
@@ -293,8 +287,7 @@ try {
     ...garage.accounts,
     { id: 'alt', label: 'HIDDEN_GAME_LABEL' },
   ];
-  const png =
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6VZAAAAAASUVORK5CYII=';
+  assert.equal(garage.records[0].photo, '');
   const alt = {
     state: 'Living',
     species: 'Deinosuchus',
@@ -303,7 +296,7 @@ try {
     growthStage: 'Adult',
     prime: true,
     code: 'ALT_SECRET',
-    photo: png,
+    photo: '',
   };
   garage = await data(
     await a.request('/api/garage', 'PUT', {
@@ -358,25 +351,48 @@ try {
     (await b.request('/api/shares/' + shared.id, 'DELETE', {})).status,
     404,
   );
-  const privatePhoto = garage.records[0].dinosaurs.alt.photo;
-  assert.equal((await anon.request(privatePhoto)).status, 401);
-  assert.equal((await b.request(privatePhoto)).status, 404);
-  await data(
-    await a.request('/api/shares/' + shared.id, 'PATCH', {
-      title: 'Public profile',
-      selectedIds: ['alt:same'],
-      includeCodes: false,
-      includePhotos: true,
-      includeAccountLabels: false,
-    }),
-  );
-  const photoView = await data(await anon.request('/api/shared/' + shared.id));
-  assert.match(photoView.records[0].photo, /alt%3Asame/);
-  assert.equal((await anon.request(photoView.records[0].photo)).status, 200);
-  assert.equal(
-    (await anon.request('/s/' + shared.id + '/photo/same')).status,
-    404,
-  );
+  // Legacy opt-in cannot resurrect old uploads, even if retained in the database.
+  await pool.query('UPDATE shares SET include_photos=1 WHERE id=$1', [
+    shared.id,
+  ]);
+  const staticView = await data(await anon.request('/api/shared/' + shared.id));
+  assert.equal(staticView.records[0].photo, undefined);
+  assert.ok(!JSON.stringify(staticView).includes('/api/photos/'));
+  for (const c of [anon, a, b]) {
+    assert.equal(
+      (await c.request('/api/photos/11111111-1111-1111-1111-111111111111'))
+        .status,
+      404,
+    );
+    assert.equal(
+      (await c.request('/s/' + shared.id + '/photo/alt%3Asame')).status,
+      404,
+    );
+  }
+  for (const species of [...speciesList, 'Custom dinosaur', '../../private']) {
+    const asset = speciesArtwork(species);
+    const response = await anon.request(asset.src);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type') || '', /image\/svg/);
+    assert.match(await response.text(), /<svg/);
+  }
+  assert.equal(speciesArtwork('Custom dinosaur').src, '/dinosaurs/unknown.svg');
+  assert.match(html, /dinosaurs\/deinosuchus.svg/);
+  for (const photo of [
+    'data:image/png;base64,AAAA',
+    'https://attacker.example/private.png',
+  ]) {
+    assert.equal(
+      (
+        await a.request('/api/garage', 'PUT', {
+          version: garage.version,
+          accounts: gameAccounts,
+          records: [{ ...garage.records[0], photo }],
+        })
+      ).status,
+      400,
+    );
+  }
   assert.equal(
     (
       await a.request('/api/garage', 'PUT', {
@@ -393,10 +409,9 @@ try {
   );
   await data(await a.request('/api/shares/' + shared.id, 'DELETE', {}));
   assert.equal((await anon.request('/api/shared/' + shared.id)).status, 404);
-  assert.equal((await anon.request(photoView.records[0].photo)).status, 404);
   assert.equal((await anon.request('/s/' + shared.id + '/image')).status, 404);
   console.log(
-    'PASS: legacy/account migration, owner isolation, private DTO, Prime/OG, S3 screenshot/revocation.',
+    'PASS: legacy/account migration, owner isolation, private DTO, Prime/OG, static species assets, retired uploads and revocation.',
   );
   const before = received.length;
   await data(
@@ -479,6 +494,18 @@ try {
   Object.assign(process.env, { NODE_ENV: 'production' });
   process.env.APP_ORIGIN = 'https://garage.example.test';
   assert.throws(() => assertProductionConfig());
+  Object.assign(process.env, {
+    DATABASE_SSL: 'verify-full',
+    SMTP_USER: 'test-only',
+    SMTP_PASSWORD: 'test-only',
+    SMTP_ALLOW_INSECURE: 'false',
+  });
+  for (const key of Object.keys(process.env))
+    if (key.startsWith('S3_')) delete process.env[key];
+  assert.doesNotThrow(
+    () => assertProductionConfig(),
+    'Production requires no object storage settings',
+  );
   const options = authOptions();
   assert.equal(options.advanced?.useSecureCookies, true);
   assert.equal(options.emailAndPassword?.requireEmailVerification, true);
@@ -492,6 +519,5 @@ try {
 } finally {
   child.kill('SIGTERM');
   await pool.end();
-  s3.destroy();
   await new Promise<void>((resolve) => smtp.close(() => resolve()));
 }

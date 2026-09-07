@@ -1,6 +1,7 @@
 'use client';
+import { speciesArtwork } from '@/lib/species-art';
 import { growthText } from '@/lib/garage-model';
-/* oxlint-disable next/no-img-element -- Public share images are access-checked owned uploads. */
+/* oxlint-disable next/no-img-element -- Images are bundled species illustrations. */
 import { useEffect, useState } from 'react';
 
 import type { PublicShare } from '@/lib/garage-types';
@@ -64,6 +65,15 @@ export default function SharedView({ initial }: { initial: PublicShare }) {
       <div className="public-records">
         {data.records.map((r, i) => (
           <article key={r.server + '-' + i}>
+            {r.state !== 'No dinosaur' && (
+              <img
+                className="species-preview"
+                src={speciesArtwork(r.species).src}
+                alt={speciesArtwork(r.species).alt}
+                width={320}
+                height={200}
+              />
+            )}
             <div className="public-dino">
               <h2 className={r.prime ? 'prime-species' : undefined}>
                 {r.state === 'No dinosaur'
@@ -98,15 +108,9 @@ export default function SharedView({ initial }: { initial: PublicShare }) {
                 ? new Date(r.updatedAt).toLocaleString()
                 : 'Not recorded'}
             </p>
-            {(r.photo || r.code) && (
+            {r.code && (
               <details className="public-details">
-                <summary>Skin &amp; screenshot</summary>
-                {r.photo && (
-                  <img
-                    src={`${r.photo}?v=${data.revision}`}
-                    alt={`${r.species || 'Dinosaur'} screenshot shared by owner`}
-                  />
-                )}{' '}
+                <summary>Skin code</summary>
                 {r.code && (
                   <div className="public-code">
                     <label>
