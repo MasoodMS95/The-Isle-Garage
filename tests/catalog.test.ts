@@ -20,7 +20,7 @@ const old = {
 };
 const absent = { ...old, id: 'existing-eu3', name: 'Official EU 3' };
 const merged = directoryServers([old, absent]);
-assert.equal(merged.length, 28);
+assert.equal(merged.length, 32);
 const preserved = merged.find((s) => s.id === old.id)!;
 assert.equal(preserved.name, 'Official EU 1');
 assert.equal(preserved.favorite, true);
@@ -33,8 +33,15 @@ for (const query of ['EU1', 'EU 1', 'Official EU 1'])
 assert.equal(
   directoryServers([{ ...old, id: 'kept-custom-id', name: 'Official EU 1' }])
     .length,
-  27,
+  31,
 );
 console.log(
   'PASS: observed official catalog, stable IDs, aliases, preservation and search.',
+);
+
+assert.ok(
+  directoryServers([]).every(
+    (server) =>
+      !server.favorite && server.state === 'No dinosaur' && !server.species,
+  ),
 );

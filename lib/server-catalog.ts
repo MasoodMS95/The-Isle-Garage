@@ -18,6 +18,20 @@ export const officialServers: Server[] = Object.entries(regions).flatMap(
       favorite: false,
     })),
 );
+// Existing illustrative community directory entries, never preloaded garage records.
+const communityServers: Server[] = [
+  ['bosch-demo', 'Bosch Island', 'Bosch Island'],
+  ['pieds-demo', 'Petits Pieds', 'Petits Pieds'],
+  ['asura-demo', 'Asura', 'Asura'],
+  ['islander-i', 'Islander · Semi-Realism I', 'Islander'],
+].map(([id, name, community]) => ({
+  ...emptyDino,
+  id,
+  name,
+  community,
+  kind: 'Community',
+  favorite: false,
+}));
 function catalogMatch(server: Server) {
   if (server.kind !== 'Official') return undefined;
   const compact = server.name
@@ -37,6 +51,9 @@ export function directoryServers(saved: Server[]): Server[] {
   return [
     ...saved.map(officialDisplay),
     ...officialServers.filter((server) => !covered.has(server.id)),
+    ...communityServers.filter(
+      (server) => !saved.some((record) => record.id === server.id),
+    ),
   ];
 }
 export function matchesServerQuery(server: Server, query: string) {

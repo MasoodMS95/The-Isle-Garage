@@ -32,3 +32,7 @@ Configure platform/proxy/tracing logs to exclude auth query strings, bodies, coo
 Configure database backups, and test restoration. Do not roll back to old Sites code after importing into this schema.
 
 Discord synchronization remains disabled unless separately configured and authorized. It only edits an existing bot-owned message.
+
+## Canonical address
+
+The live custom domain is https://theislegarage.com. The Blueprint persists domains: [theislegarage.com] and renderSubdomainPolicy: disabled, matching the verified deployment setting. Render redirects www to the apex and returns 404 on the default onrender hostname. Keep APP_ORIGIN set to the exact apex origin; do not widen auth trusted origins to bypass incorrect-domain requests. Verify custom DNS and TLS before applying this restriction to a new service. See [Render Blueprint reference](https://render.com/docs/blueprint-spec#rendersubdomainpolicy).

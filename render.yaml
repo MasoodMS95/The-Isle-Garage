@@ -9,6 +9,9 @@ services:
     plan: 0.5c-512mb
     autoDeployTrigger: off
     healthCheckPath: /api/health
+    domains:
+      - theislegarage.com
+    renderSubdomainPolicy: disabled
     envVars:
       - key: APP_ORIGIN
         sync: false
