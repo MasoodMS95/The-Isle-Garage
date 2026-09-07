@@ -88,3 +88,9 @@ The garage, public profiles and Discord preview use bundled SVG illustrations fo
 Screenshot uploads and their sharing setting are retired. Old private image endpoints always return 404, and saved image references are stripped from responses and subsequent saves. No S3/R2 account, bucket or credentials are needed. Existing remote objects/backups are untouched; any later cleanup requires a separately verified inventory.
 
 The directory includes 27 unlocked official servers observed in user-provided in-game screenshots. Existing server IDs, favorites and records are preserved; no live population or availability is implied. See [server evidence](docs/SERVERS.md) and [species evidence](docs/SPECIES.md).
+
+## New garages and interface styling
+
+New accounts start with an empty garage and no favorite servers or sample dinosaurs. Discover still lists the official directory and existing illustrative community entries, all unfavorited and without dinosaur records. Existing saved records are preserved, including records resembling old demo values; there is no automatic database cleanup. Old browser records are only imported by an explicit user action and are never automatically seeded.
+
+Tailwind 4 is compiled through postcss.config.mjs using @tailwindcss/postcss. Keep this configuration in production builds: shared dialogs, selects and tabs depend on generated utilities for positioning, focus styling and spacing.

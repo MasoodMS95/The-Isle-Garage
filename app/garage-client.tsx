@@ -50,68 +50,6 @@ import {
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
-const initial: Server[] = [
-  {
-    id: 'bosch-demo',
-    name: 'Bosch Island',
-    community: 'Bosch Island',
-    kind: 'Community',
-    favorite: true,
-    state: 'Living',
-    species: 'Tyrannosaurus',
-    growth: 83,
-    code: '',
-    photo: '',
-  },
-  {
-    id: 'pieds-demo',
-    name: 'Petits Pieds',
-    community: 'Petits Pieds',
-    kind: 'Community',
-    favorite: true,
-    state: 'No dinosaur',
-    species: '',
-    growth: 0,
-    code: '',
-    photo: '',
-  },
-  {
-    id: 'official-eu1',
-    name: 'EU1',
-    community: 'The Isle Official',
-    kind: 'Official',
-    favorite: true,
-    state: 'Dead',
-    species: 'Omniraptor',
-    growth: 100,
-    code: '',
-    photo: '',
-  },
-  {
-    id: 'asura-demo',
-    name: 'Asura',
-    community: 'Asura',
-    kind: 'Community',
-    favorite: false,
-    state: 'No dinosaur',
-    species: '',
-    growth: 0,
-    code: '',
-    photo: '',
-  },
-  {
-    id: 'islander-i',
-    name: 'Islander · Semi-Realism I',
-    community: 'Islander',
-    kind: 'Community',
-    favorite: false,
-    state: 'No dinosaur',
-    species: '',
-    growth: 0,
-    code: '',
-    photo: '',
-  },
-];
 export default function Garage({
   initialRecords,
   initialAccounts,
@@ -124,9 +62,7 @@ export default function Garage({
   ownerName: string;
 }) {
   const [allServers, setAllServers] = useState<Server[]>(
-    (initialRecords || initial).map((s) =>
-      officialDisplay({ ...s, ...dino(s) }),
-    ),
+    (initialRecords || []).map((s) => officialDisplay({ ...s, ...dino(s) })),
   );
   const [accounts, setAccounts] = useState(initialAccounts);
   const [accountId, selectAccount] = useState('main');
@@ -155,9 +91,7 @@ export default function Garage({
   }, [allServers, accounts]);
 
   const [legacy, setLegacy] = useState<Server[] | null>(null);
-  const [saveState, setSaveState] = useState(
-    initialRecords ? 'saved' : 'unsaved',
-  );
+  const [saveState, setSaveState] = useState('saved');
   const [changed, setChanged] = useState(0);
   const revision = useRef(initialVersion);
   const saveChain = useRef(Promise.resolve());
@@ -446,7 +380,7 @@ export default function Garage({
                 : s.updated
                   ? 'Manually updated ' +
                     new Date(s.updated).toLocaleDateString()
-                  : 'Sample record · try editing'}
+                  : 'Not yet updated'}
             </span>
           </div>
           {s.state === 'Living' && (
@@ -534,16 +468,18 @@ export default function Garage({
             </div>
             <div className="save-indicator">
               {saveState === 'saved'
-                ? 'Saved privately'
+                ? allServers.length
+                  ? 'Saved privately'
+                  : 'Your garage is empty · Add a server to begin'
                 : saveState === 'saving'
                   ? 'Saving…'
                   : saveState === 'error'
                     ? 'Save failed — retry before sharing'
-                    : 'Unsaved sample garage'}
-              {(saveState === 'unsaved' || saveState === 'error') && (
+                    : 'Changes not yet saved'}
+              {saveState === 'error' && (
                 <button className="text-button" onClick={markChanged}>
                   {' '}
-                  · Save garage
+                  Retry save
                 </button>
               )}
             </div>
@@ -1150,29 +1086,34 @@ export default function Garage({
         <DialogContent className="garage-dialog">
           <DialogTitle>Operator session</DialogTitle>
           <DialogDescription>
-            website sign-in protects your garage while Steam integration is
-            pending.
+            Your verified email sign-in protects your private garage.
           </DialogDescription>
           <p>
             Try favoriting servers, parking a dinosaur, and updating its growth
             or skin. Records are saved privately to your garage account.
           </p>
-          <button
-            className="text-button"
-            onClick={async () => {
-              await authClient.signOut();
-              window.location.assign('/login');
-            }}
-          >
-            Sign out
-          </button>
           <p>
-            Steam sign-in and automatic Discord message updates are planned
-            integrations. No game account is connected.
+            Game-account labels help organize your records. They do not connect
+            to Steam or read live game data.
           </p>
-          <button className="primary-button" onClick={() => setInfo(false)}>
-            Explore the garage <ArrowUpRight size={16} />
-          </button>
+          <div className="session-actions">
+            <button className="primary-button" onClick={() => setInfo(false)}>
+              Explore the garage <ArrowUpRight size={16} />
+            </button>
+            <button
+              className="text-button"
+              onClick={async () => {
+                const result = await authClient.signOut();
+                if (result.error) {
+                  setNotice('Sign out failed. Please try again.');
+                  return;
+                }
+                window.location.assign('/login');
+              }}
+            >
+              Sign out
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
       {notice && <output className="notice">{notice}</output>}

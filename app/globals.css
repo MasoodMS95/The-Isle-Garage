@@ -2667,3 +2667,77 @@ footer {
     height: 50px;
   }
 }
+
+/* Shared dialogs remain centered, with bounded scrolling on small screens. */
+.garage-dialog {
+  max-height: calc(100dvh - 32px);
+  overscroll-behavior: contain;
+  gap: 20px;
+}
+.garage-dialog [data-slot='dialog-title'] {
+  padding-right: 36px;
+  margin: 0;
+}
+.garage-dialog [data-slot='dialog-description'],
+.garage-dialog p {
+  margin: 0;
+}
+.garage-dialog > [data-slot='dialog-close'] {
+  width: 36px;
+  height: 36px;
+}
+.account-manage-list {
+  display: grid;
+  gap: 12px;
+}
+.account-manage-list > div {
+  min-height: 48px;
+  padding: 12px 0;
+  gap: 24px;
+}
+.session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+  padding-top: 8px;
+}
+.session-actions .primary-button {
+  min-height: 44px;
+}
+.tab-row [data-slot='tabs-list'] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  height: auto;
+}
+.tab-row [data-slot='tabs-trigger'] {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 12px;
+}
+.tab-row [data-slot='tabs-trigger'] svg {
+  flex-shrink: 0;
+}
+[data-slot='select-item'] {
+  min-height: 40px;
+  line-height: 1.5;
+}
+@media (max-width: 480px) {
+  .session-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .session-actions button {
+    width: 100%;
+  }
+  .tab-row [data-slot='tabs-list'] {
+    gap: 24px;
+  }
+  .tab-row [data-slot='tabs-trigger'] {
+    padding-inline: 8px;
+  }
+}
