@@ -72,6 +72,7 @@ export default function Garage({
   }
   const [manageAccounts, setManageAccounts] = useState(false);
   const [accountName, setAccountName] = useState('');
+  const [accountError, setAccountError] = useState('');
   const [renameId, setRenameId] = useState<string | null>(null);
   const servers = allServers.map((s) => forAccount(s, accountId));
   function setServers(value: Server[] | ((old: Server[]) => Server[])) {
@@ -505,6 +506,7 @@ export default function Garage({
                   className="text-button"
                   onClick={() => {
                     setManageAccounts(true);
+                    setAccountError('');
                     setRenameId(null);
                     setAccountName('');
                   }}
@@ -997,6 +999,7 @@ export default function Garage({
                   onClick={() => {
                     setRenameId(a.id);
                     setAccountName(a.label);
+                    setAccountError('');
                   }}
                 >
                   Rename
@@ -1006,27 +1009,38 @@ export default function Garage({
           </div>
           <form
             className="edit-form"
+            noValidate
             onSubmit={(e) => {
               e.preventDefault();
               const label = accountName.trim();
+              if (!label) {
+                setAccountError('Enter an account label.');
+                return;
+              }
+              if (label.length > 40) {
+                setAccountError('Use 40 characters or fewer.');
+                return;
+              }
               if (
-                !label ||
                 accounts.some(
                   (a) =>
                     a.id !== renameId &&
                     a.label.toLowerCase() === label.toLowerCase(),
                 )
               ) {
-                setNotice('Choose a unique account name.');
+                setAccountError(
+                  'That label is already used. Choose a different label.',
+                );
                 return;
               }
+              setAccountError('');
               if (renameId)
                 setAccounts((old) =>
                   old.map((a) => (a.id === renameId ? { ...a, label } : a)),
                 );
               else {
                 if (accounts.length >= 20) {
-                  setNotice('Up to 20 accounts are supported.');
+                  setAccountError('Up to 20 accounts are supported.');
                   return;
                 }
                 const id = crypto.randomUUID();
@@ -1044,9 +1058,20 @@ export default function Garage({
                 required
                 maxLength={40}
                 value={accountName}
-                onChange={(e) => setAccountName(e.target.value)}
+                aria-invalid={!!accountError}
+                aria-describedby="account-label-help account-label-error"
+                onChange={(e) => {
+                  setAccountName(e.target.value);
+                  setAccountError('');
+                }}
               />
             </label>
+            <small id="account-label-help">
+              Use a unique label, up to 40 characters.
+            </small>
+            <p id="account-label-error" className="field-error" role="alert">
+              {accountError}
+            </p>
             <div className="form-actions">
               <button className="primary-button">
                 {renameId ? 'Save label' : 'Add account'}
@@ -1058,6 +1083,7 @@ export default function Garage({
                   onClick={() => {
                     setRenameId(null);
                     setAccountName('');
+                    setAccountError('');
                   }}
                 >
                   Cancel rename

@@ -2741,3 +2741,73 @@ footer {
     padding-inline: 8px;
   }
 }
+
+.account-manage-list,
+.account-manage-list > div {
+  min-width: 0;
+}
+.account-manage-list > div > span {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.account-manage-list > div > button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  min-height: 44px;
+}
+.garage-dialog .field-error {
+  color: #f0ad9f;
+  font-size: 12px;
+}
+.garage-dialog .field-error:empty {
+  display: none;
+}
+.account-tabs label {
+  overflow-wrap: anywhere;
+}
+
+/* Let intrinsic control widths shrink inside the bounded record dialog. */
+.garage-dialog > *,
+.garage-dialog .edit-form > *,
+.garage-dialog .field-grid > *,
+.garage-dialog .growth-fields > * {
+  min-width: 0;
+}
+.garage-dialog [data-slot='dialog-description'] {
+  overflow-wrap: anywhere;
+}
+.garage-dialog .field-grid {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+}
+.garage-dialog input:not([type='checkbox']),
+.garage-dialog select,
+.garage-dialog textarea {
+  max-width: 100%;
+  min-width: 0;
+}
+.garage-dialog [data-slot='select-trigger'],
+.garage-dialog [data-slot='select-value'] {
+  min-width: 0;
+}
+.garage-dialog [data-slot='select-value'] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.garage-dialog .form-actions {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+@media (max-width: 400px) {
+  .garage-dialog .field-grid,
+  .garage-dialog .growth-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .garage-dialog .form-actions {
+    align-items: stretch;
+  }
+  .garage-dialog .form-actions button {
+    flex: 1 1 100%;
+    min-height: 44px;
+  }
+}
