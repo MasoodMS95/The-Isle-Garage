@@ -606,7 +606,7 @@ export default function Garage({
                     onValueChange={(v) => setFilter(v || 'All servers')}
                   >
                     <SelectTrigger aria-label="Server type">
-                      <SelectValue />
+                      <SelectValue>{serverKindLabel(filter)}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {['All servers', 'Official', 'Community', 'Custom'].map(
