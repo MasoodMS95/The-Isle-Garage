@@ -1,11 +1,11 @@
-import { env } from 'cloudflare:workers';
 import { owner } from '@/lib/server/owner';
 import { failure, json, mutation } from '@/lib/server/runtime';
 import { discordConfigured, syncDiscord } from '@/lib/server/discord';
 export async function GET() {
   try {
     const ownerId = await owner();
-    const configured = discordConfigured() && env.DISCORD_OWNER_ID === ownerId;
+    const configured =
+      discordConfigured() && process.env.DISCORD_OWNER_ID === ownerId;
     return json({
       configured,
       description: configured

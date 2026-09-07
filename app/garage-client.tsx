@@ -1,6 +1,7 @@
 'use client';
 /* oxlint-disable next/no-img-element -- User-selected browser-local data URLs need no image service. */
 import Link from 'next/link';
+import { authClient } from '@/lib/auth-client';
 
 import { useEffect, useState, useRef } from 'react';
 import { flushSync } from 'react-dom';
@@ -514,7 +515,7 @@ export default function Garage({
             <span className="avatar">G</span>
             <span>
               {ownerName}
-              <small>ChatGPT account</small>
+              <small>garage account</small>
             </span>
             <ChevronRight size={15} />
           </button>
@@ -549,7 +550,7 @@ export default function Garage({
             {legacy && (
               <div className="migration-notice">
                 Records from this browser are available. Import them into this
-                ChatGPT account?
+                garage account?
                 <button
                   onClick={() => {
                     setAllServers(legacy.map((s) => ({ ...s, ...dino(s) })));
@@ -743,7 +744,7 @@ export default function Garage({
               </TabsContent>
             </Tabs>
             <div className="local-note">
-              Private ChatGPT-owned records. Only lists you publish are public.
+              Private account-owned records. Only lists you publish are public.
               Parking does not save a dinosaur in-game.
             </div>
           </section>
@@ -1073,7 +1074,7 @@ export default function Garage({
         <DialogContent className="garage-dialog">
           <DialogTitle>Game accounts</DialogTitle>
           <DialogDescription>
-            Labels for your game accounts, separate from your ChatGPT sign-in.
+            Labels for your game accounts, separate from your website sign-in.
             All accounts use the same favorite servers.
           </DialogDescription>
           <div className="account-manage-list">
@@ -1174,13 +1175,22 @@ export default function Garage({
         <DialogContent className="garage-dialog">
           <DialogTitle>Operator session</DialogTitle>
           <DialogDescription>
-            ChatGPT sign-in protects your garage while Steam integration is
+            website sign-in protects your garage while Steam integration is
             pending.
           </DialogDescription>
           <p>
             Try favoriting servers, parking a dinosaur, and updating its growth
-            or skin. Records are saved privately to your ChatGPT account.
+            or skin. Records are saved privately to your garage account.
           </p>
+          <button
+            className="text-button"
+            onClick={async () => {
+              await authClient.signOut();
+              window.location.assign('/login');
+            }}
+          >
+            Sign out
+          </button>
           <p>
             Steam sign-in and automatic Discord message updates are planned
             integrations. No game account is connected.

@@ -1,12 +1,8 @@
-import { env } from 'cloudflare:workers';
-export function db() {
-  if (!env.DB) throw new Error('Database unavailable');
-  return env.DB;
-}
-export function files() {
-  if (!env.FILES) throw new Error('Image storage unavailable');
-  return env.FILES;
-}
+import { database } from './database';
+import { objectFiles } from './storage';
+import { appOrigin } from './config';
+export const db = database;
+export const files = objectFiles;
 export const noStore = {
   'Cache-Control': 'no-store, max-age=0',
   'X-Content-Type-Options': 'nosniff',
@@ -35,19 +31,18 @@ export function failure(error: unknown) {
   );
 }
 export function origin() {
-  return env.SITE_ORIGIN || 'https://isle-garage-design.masoodms.chatgpt.site';
+  return appOrigin();
 }
 export function mutation(request: Request) {
   const source = request.headers.get('origin');
-  const expected = new URL(request.url).origin;
+  const expected = appOrigin();
   if (!source || source !== expected)
     throw new HttpError(403, 'Same-origin request required');
   if (!request.headers.get('content-type')?.startsWith('application/json'))
     throw new HttpError(415, 'JSON required');
 }
 export async function body(request: Request, max = 1600000) {
-  const text = await request.text();
-  if (text.length > max) throw new HttpError(413, 'Request too large');
+  const text = await readLimitedText(request, max);
   try {
     return JSON.parse(text) as unknown;
   } catch {
@@ -63,4 +58,35 @@ export function str(value: unknown, max: number) {
   if (typeof value !== 'string' || value.length > max)
     throw new HttpError(400, 'Invalid text field');
   return value;
+}
+
+export async function readLimitedText(request: Request, max: number) {
+  const length = request.headers.get('content-length');
+  if (length && (!Number.isFinite(Number(length)) || Number(length) > max))
+    throw new HttpError(413, 'Request too large');
+  const reader = request.body?.getReader();
+  if (!reader) return '';
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > max) {
+        await reader.cancel();
+        throw new HttpError(413, 'Request too large');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return new TextDecoder().decode(bytes);
 }

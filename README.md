@@ -1,138 +1,82 @@
 # The Isle Garage
 
-A private, manually maintained dinosaur garage for **The Isle: Evrima**, with selective public profiles for sharing with friends.
-
-[Repository](https://github.com/MasoodMS95/The-Isle-Garage) · [Hosted site](https://isle-garage-design.masoodms.chatgpt.site)
-
-> The repository includes the account, growth-stage, Prime, and public-profile updates. The hosted site may be behind this source; pushing to GitHub does not deploy it.
+A private, manually maintained dinosaur garage for **The Isle: Evrima**, with selective public profiles.
 
 ## Features
 
-- **Game accounts:** named account tabs on desktop and a dropdown on mobile, with add and rename controls.
-- **One server list:** favorites are shared across game accounts; each account has independent dinosaur records on each server.
-- **Dinosaur tracking:** species, living/parked, dead, unknown, or no-dinosaur status, with optional skin codes and screenshots.
-- **Growth:** choose a percentage from 1–100 or a stage: Juvie, Adolescent, Adult, or Full grown. Unknown/unset is supported; modes do not convert automatically.
-- **Prime:** an independent checkbox, shown with a gold accent and a visible PRIME label.
-- **Public profiles:** stable, read-only links showing explicitly selected account records, with server, growth, and status. Open profiles refresh saved data every 15 seconds.
-- **Discord previews:** server-rendered Open Graph metadata and a PNG preview. Optional synchronization can edit one configured, existing bot-owned message.
-- **Terminal-inspired design:** green monochrome styling, original illustrative scenery, pausable effects, and opt-in sound.
+- Named game accounts: desktop tabs, mobile dropdown, add and rename.
+- One shared favorite-server list, with independent dinosaur records per account.
+- Living/parked, dead, unknown, and empty states.
+- Growth as **1–100%** or **Juvie / Adolescent / Adult / Full grown**, without automatic conversion.
+- Independent **PRIME** status, with a text badge and gold accent.
+- Stable read-only profiles; explicitly selected records refresh every 15 seconds.
+- Optional skin codes, private screenshots, and opt-in account labels.
+- Open Graph PNG previews and optional edits to one configured bot-owned Discord message.
 
-This is an unofficial fan project. Records are entered by users; there is no live game connection or Steam authentication.
+This unofficial fan project does not connect to live game data or implement Steam authentication.
 
-## Privacy and account model
+## Runtime and login
 
-ChatGPT sign-in protects the editor and owner APIs. Game-account names are private labels, separate from the website sign-in identity.
+This milestone replaces Sites/Workers and ChatGPT sign-in with **Next.js 16 on Node.js**, **PostgreSQL**, **private S3-compatible storage**, and **Better Auth email/password login**.
 
-Creating a link requires selecting individual account/server records. Each selection binds to a persistent account ID, so switching tabs or renaming an account does not redirect an existing share to another account.
+Email verification is mandatory. Passwords use a maintained Argon2id adapter with 19 MiB memory, two iterations, and one lane. Production requires email delivery, HTTPS, private image storage, and an explicit database TLS policy.
 
-Account labels, skin codes, and screenshots are excluded from public links unless explicitly enabled. Account email and sign-in name are never included in public record projections. Revoking a link blocks future access to its page, data, preview image, and shared screenshots. External services such as Discord can retain previously cached previews.
+The migration is prepared for Render, with a portable Docker image. This branch does not provision paid services or remove the previous hosted app/data.
 
-Screenshots are stored in private R2 storage and served through access-checked routes. Garage writes use optimistic versions to reject stale saves.
+## Development
 
-## Stack
+Use Node.js 24 and npm. Copy [.env.example](.env.example) to an ignored .env file and configure PostgreSQL, a random auth secret, SMTP, and a private bucket.
 
-React 19, TypeScript, Vinext/Vite, Tailwind CSS, shadcn/Base UI, and Cloudflare Workers. D1 stores garage and share records; R2 stores uploaded screenshots. Drizzle defines the database schema and migrations. Sites supplies the hosted access layer and runtime bindings.
-
-## Local setup
-
-Use Node.js **22.13 or newer** and npm. The integration workflow has been verified with Node.js 24.18. Commands below use a POSIX shell; Windows users can run them in WSL.
-
-~~~sh
-git clone https://github.com/MasoodMS95/The-Isle-Garage.git
-cd The-Isle-Garage
+```sh
 npm ci
-cp .env.example .env
+node --env-file=.env --import tsx scripts/migrate.ts
 npm run dev
-~~~
+```
 
-The editor requires the Sites sign-in/identity layer. A local Worker without that layer redirects anonymous editor requests and rejects owner API requests. The integration tests simulate trusted dispatch headers locally; they do not establish real ChatGPT sessions.
+Migrations create the auth library's tables and application tables. Registration/recovery are unavailable without email delivery. A local SMTP sink works for development; production rejects insecure SMTP.
 
-### Test the production Worker locally
-
-Build and prepare a separate local test database:
-
-~~~sh
-npm run build
-mkdir -p outputs
-npx wrangler d1 execute DB --local --config dist/server/wrangler.json --persist-to outputs/test-state --file drizzle/0000_absent_lily_hollister.sql
-node tests/accounts.integration.mjs --seed
-npx wrangler d1 execute DB --local --config dist/server/wrangler.json --persist-to outputs/test-state --file outputs/accounts-legacy.sql
-npx wrangler dev --config dist/server/wrangler.json --persist-to outputs/test-state --port 8788
-~~~
-
-In another terminal:
-
-~~~sh
-node tests/accounts.integration.mjs
-TEST_ORIGIN=http://localhost:8788 node tests/sharing.integration.mjs
-~~~
-
-The account suite requires its legacy fixture to be seeded before each run. Apply the schema once per fresh test-state directory. Use the same explicit persistence directory for all database and Worker commands; keeping it outside the generated build directory preserves test data across rebuilds.
-
-Tests cover legacy migration, account isolation on the same server, shared favorites, stable renamed accounts, growth validation, Prime projection, optional labels, screenshot access, ownership, stale writes, same-link updates, preview images, and revocation. They use synthetic local records and do not send Discord messages.
-
-### Source checks
-
-~~~sh
+```sh
 npx tsc --noEmit
-npx oxlint app lib db middleware.ts
+npx oxlint app lib scripts proxy.ts instrumentation.ts
 npm run build
-~~~
+npm audit
+```
 
-The scoped lint command checks application code. The full scaffold-wide lint command also includes vendored UI components.
+See [testing](docs/TESTING.md) for the real PostgreSQL/S3/SMTP integration test. Historical Worker configurations are retained for migration reference, not as the current runtime.
 
-## Data compatibility
+## Sharing privacy
 
-Existing garages are read as the default **Main** game account. Existing 100% values remain 100%; legacy zero growth becomes unknown/unset rather than being changed to 1%.
+Private routes authorize the signed-in owner. Public routes construct a selected-field response rather than returning the stored garage.
 
-The server can read both legacy record arrays and the newer account/server JSON structure. Existing share-selection arrays remain Main-only; newer selections can identify other accounts explicitly. No account deletion flow is provided.
+Links bind to persistent account/server IDs. Switching tabs or renaming labels cannot change their selected account. Emails, login identities, private favorite lists, and unselected records are not public fields.
 
-After saving the new account format, a rollback must retain a compatible data reader. Older application versions cannot read the newer JSON envelope.
+Skin codes, screenshots, and account labels are excluded unless enabled. Revocation blocks future page/API/image access; third-party preview caches cannot be erased by this app.
 
-## Deployment
+## Deployment and operations
 
-GitHub is the canonical source repository. The existing hosted site is configured by [.openai/hosting.json](.openai/hosting.json), with logical D1 binding **DB** and R2 binding **FILES**.
+- [Render setup and costs](docs/DEPLOYMENT.md)
+- [Security requirements and limits](docs/SECURITY.md)
+- [Legacy export/import](docs/MIGRATION.md)
+- [Environment template](.env.example)
+- [Render Blueprint](render.yaml)
+- [Dockerfile](Dockerfile)
 
-There is no GitHub Actions deployment workflow in this repository. The current Sites publishing workflow requires source provenance from its own configured source repository. GitHub pushes alone cannot satisfy that requirement. Do not silently mirror source back to Sites when GitHub has been chosen as the replacement; resolve the publishing destination separately.
-
-Production must provide the trusted Sites sign-in dispatcher. The application treats its authenticated-user headers as trusted input, so a standalone Worker deployment needs an equivalent authentication boundary before accepting those headers.
-
-## Optional Discord message synchronization
-
-Synchronization is disabled by default and is not required for public links or initial link previews.
-
-Configure these production runtime variables only after authorizing the exact destination:
-
-| Variable | Purpose |
-| --- | --- |
-| SITE_ORIGIN | Canonical public origin for profile and preview URLs |
-| DISCORD_SYNC_ENABLED | Set to true to enable synchronization |
-| DISCORD_BOT_TOKEN | Bot token; store as a secret |
-| DISCORD_CHANNEL_ID | Authorized destination channel |
-| DISCORD_MESSAGE_ID | Existing message authored by that bot |
-| DISCORD_SHARE_ID | The selected public share |
-| DISCORD_OWNER_ID | The garage owner's Site-specific authenticated user ID |
-
-The backend verifies the bot identity and message author before editing. It never creates a message. Saves and share changes attempt an update; the sharing dialog also offers an explicit retry when configured. Rate limits are respected, but there is no autonomous retry queue or delivery guarantee.
-
-Deploy after changing production runtime variables. Keep tokens and local environment files out of source control. See [.env.example](.env.example) for the non-secret configuration template.
-
-## Branch workflow
-
-Use **main** as the canonical branch. Name development branches after their milestone or goal, for example **milestone/account-sharing** or **goal/mobile-layout**.
+GitHub is the only source destination. Use **main** as canonical and milestone/goal development names such as **milestone/hosting-auth**.
 
 ## Project structure
 
-| Path | Purpose |
-| --- | --- |
-| app/garage-client.tsx | Private editor, game accounts, and server list |
-| app/share-manager.tsx | Explicit public-link selection and management |
-| app/s/[id]/ | Read-only public profiles and image/photo routes |
-| app/api/ | Owner APIs and public selected-record API |
-| lib/garage-model.ts | Account projection, selection IDs, and growth formatting |
-| lib/server/ | Validation, persistence, authorization, and previews |
-| db/ and drizzle/ | Database schema and migrations |
-| tests/ | Local integration checks |
-| public/ | Original artwork and static assets |
+| Path                               | Purpose                                     |
+| ---------------------------------- | ------------------------------------------- |
+| app/garage-client.tsx              | Editor, game accounts, server list          |
+| app/login/ and app/reset-password/ | Email/password flows                        |
+| app/api/auth/                      | Auth handler and request guards             |
+| app/share-manager.tsx              | Explicit sharing                            |
+| app/s/[id]/                        | Public profiles and protected images        |
+| lib/auth.ts                        | Password/session/verification policy        |
+| lib/server/                        | PostgreSQL, S3, mail, ownership, projection |
+| migrations/postgres/               | Application SQL                             |
+| scripts/                           | Startup checks, migrations, legacy transfer |
+| tests/security.integration.ts      | Real local integration tests                |
+| legacy/                            | Previous platform reference                 |
 
-Generated builds, local databases, environment files, and temporary outputs are excluded from Git.
+Credentials, databases, builds, and temporary exports are excluded from Git. Never commit actual user emails, passwords, tokens, mail payloads, or backups.

@@ -2608,3 +2608,34 @@ footer {
   max-width: 105px;
   white-space: normal;
 }
+.auth-page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 64px 24px;
+  color: #c8d9bd;
+  font-family: monospace;
+}
+.auth-page h1 {
+  font-size: 30px;
+  margin: 18px 0;
+}
+.auth-page p {
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 18px 0;
+  color: #a8bea0;
+}
+.auth-page input {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid #71926d;
+  background: #102017;
+  color: #d0e1c5;
+}
+.auth-actions {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}

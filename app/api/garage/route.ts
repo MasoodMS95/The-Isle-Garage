@@ -52,7 +52,7 @@ export async function PUT(request: Request) {
     const now = new Date().toISOString();
     await db()
       .prepare(
-        'INSERT OR IGNORE INTO garages (owner_id,records,version,updated_at) VALUES (?, ?, 0, ?)',
+        'INSERT INTO garages (owner_id,records,version,updated_at) VALUES (?, ?, 0, ?) ON CONFLICT (owner_id) DO NOTHING',
       )
       .bind(id, '[]', now)
       .run();
