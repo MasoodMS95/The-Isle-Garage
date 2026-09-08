@@ -1,24 +1,17 @@
-import { mainAccounts, dino, selectedRecord } from '../garage-model';
+import {
+  mainAccounts,
+  dino,
+  selectedRecord,
+  forAccount,
+} from '../garage-model';
 import { stages } from '../garage-types';
-import type { Server, Share, PublicShare, GameAccount } from '../garage-types';
+import type { Server, PublicShare, GameAccount } from '../garage-types';
 import { db, HttpError, obj, str } from './runtime';
 export type GarageRow = {
   owner_id: string;
   records: string;
   version: number;
   updated_at: string;
-};
-export type ShareRow = {
-  id: string;
-  owner_id: string;
-  title: string;
-  selected_ids: string;
-  include_codes: number;
-  include_photos: number;
-  active: number;
-  updated_at: string;
-  discord_status: string;
-  next_attempt: number;
 };
 export async function getGarage(ownerId: string) {
   return db()
@@ -72,53 +65,22 @@ export function validateAccounts(
     throw new HttpError(400, 'Existing game accounts must be retained');
   return accounts;
 }
-function selection(s: ShareRow): {
-  ids: string[];
-  includeAccountLabels: boolean;
-} {
-  const data = JSON.parse(s.selected_ids);
-  return Array.isArray(data)
-    ? { ids: data, includeAccountLabels: false }
-    : data;
-}
-export function shareView(s: ShareRow): Share {
-  return {
-    id: s.id,
-    title: s.title,
-    selectedIds: selection(s).ids,
-    includeAccountLabels: !!selection(s).includeAccountLabels,
-    includeCodes: !!s.include_codes,
-    active: !!s.active,
-    updatedAt: s.updated_at,
-    discordStatus: s.discord_status,
-  };
-}
-export async function ownedShare(id: string, ownerId: string) {
-  const s = await db()
-    .prepare('SELECT * FROM shares WHERE id=? AND owner_id=?')
-    .bind(id, ownerId)
-    .first<ShareRow>();
-  if (!s) throw new HttpError(404, 'Share not found');
-  return s;
-}
 export async function publicData(id: string): Promise<PublicShare | null> {
   if (!/^[a-f0-9]{32}$/.test(id)) return null;
-  const s = await db()
-    .prepare('SELECT * FROM shares WHERE id=? AND active=1')
+  const row = await db()
+    .prepare(
+      'SELECT p.public_id,p.updated_at AS profile_updated_at,p.version AS profile_version,g.records,g.version,g.updated_at FROM garage_profiles p LEFT JOIN garages g ON g.owner_id=p.owner_id WHERE p.public_id=? AND p.is_public=true',
+    )
     .bind(id)
-    .first<ShareRow>();
-  if (!s) return null;
-  const g = await getGarage(s.owner_id);
-  if (!g) return null;
-  const chosen = selection(s);
-  const saved = clientRecords(g) || [];
-  const accounts = clientAccounts(g);
-  const records = chosen.ids.flatMap((key) => {
-    const item = selectedRecord(saved, accounts, key);
-    if (!item) return [];
-    const r = item.record;
-    return [
-      {
+    .first<GarageRow & { profile_updated_at: Date; profile_version: number }>();
+  if (!row) return null;
+  const garage = row.records ? row : null;
+  const servers = clientRecords(garage) || [];
+  const accounts = clientAccounts(garage);
+  const records = accounts.flatMap((account) =>
+    servers.map((server) => {
+      const r = forAccount(server, account.id);
+      return {
         server: r.name,
         kind: r.kind,
         state: r.state,
@@ -127,20 +89,25 @@ export async function publicData(id: string): Promise<PublicShare | null> {
         growthMode: r.growthMode,
         growthStage: r.growthStage,
         prime: !!r.prime,
+        accountLabel: account.label,
+        code: r.code,
         updatedAt: r.updated || null,
-        ...(chosen.includeAccountLabels
-          ? { accountLabel: item.account.label }
-          : {}),
-        ...(s.include_codes && r.code ? { code: r.code } : {}),
-      },
-    ];
-  });
+      };
+    }),
+  );
+  const updatedAt = new Date(
+    Math.max(
+      new Date(row.profile_updated_at).getTime(),
+      row.updated_at ? Date.parse(row.updated_at) : 0,
+    ),
+  ).toISOString();
   return {
     id,
-    title: s.title,
+    title: 'Garage profile',
+    accountLabels: accounts.map((account) => account.label),
     records,
-    updatedAt: g.updated_at > s.updated_at ? g.updated_at : s.updated_at,
-    revision: `${g.version}-${Date.parse(s.updated_at)}`,
+    updatedAt,
+    revision: `${row.version || 0}-${row.profile_version}`,
     source: 'Manual website records',
   };
 }

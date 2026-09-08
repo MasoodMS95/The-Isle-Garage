@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import { owner } from '@/lib/server/owner';
 import {
   body,
@@ -71,8 +72,10 @@ export async function PUT(request: Request) {
         409,
         'Your garage changed in another tab. Reload before saving.',
       );
-    const discord = await syncDiscord(id);
-    return json({ records, accounts, version: updated.version, discord });
+    after(async () => {
+      await syncDiscord(id);
+    });
+    return json({ records, accounts, version: updated.version });
   } catch (e) {
     return failure(e);
   }

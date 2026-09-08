@@ -3,6 +3,7 @@ import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { hash, verify } from '@node-rs/argon2';
 import { databasePool } from './server/database.ts';
 import { appOrigin } from './server/config.ts';
+import { ensureProfile } from './server/profile.ts';
 import { queueEmail } from './server/mail.ts';
 let instance: ReturnType<typeof betterAuth> | undefined;
 export function authOptions(): BetterAuthOptions {
@@ -17,6 +18,15 @@ export function authOptions(): BetterAuthOptions {
     secret,
     database: databasePool(),
     trustedOrigins: [appOrigin()],
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (user) => {
+            await ensureProfile(user.id);
+          },
+        },
+      },
+    },
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,

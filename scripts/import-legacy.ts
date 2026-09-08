@@ -92,7 +92,7 @@ try {
         }),
         input.includeCodes,
         input.includePhotos,
-        raw.active === 1 ? 1 : 0,
+        0, // Imported selected links stay retired; profile remains private.
         now,
       ],
     );

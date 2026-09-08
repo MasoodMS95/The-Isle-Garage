@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { flushMail } from '../lib/server/mail';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -261,10 +262,11 @@ try {
     state: 'Living',
     species: 'Tyrannosaurus',
     growth,
-    code: 'SECRET_SKIN',
+    code: 'PUBLIC_SKIN',
     photo: '',
   });
-  // Seed actual pre-upgrade D1 JSON shape, preserving old ownership after explicit administrator mapping.
+  // Existing array-format garage + active selected link before migration.
+  const legacyId = crypto.randomUUID().replaceAll('-', '');
   await pool.query(
     'INSERT INTO garages(owner_id,records,version,updated_at) VALUES($1,$2,1,$3)',
     [
@@ -279,15 +281,71 @@ try {
       new Date().toISOString(),
     ],
   );
+  await pool.query(
+    'INSERT INTO shares(id,owner_id,title,selected_ids,active,updated_at) VALUES($1,$2,$3,$4,1,$5)',
+    [
+      legacyId,
+      accountA.user.id,
+      'Old limited link',
+      '["same"]',
+      new Date().toISOString(),
+    ],
+  );
+  let profile = await data(await a.request('/api/profile'));
+  assert.equal(profile.visibility, 'private');
+  const stableId = profile.id;
+  const migration = await readFile(
+    'migrations/postgres/002-garage-profiles.sql',
+    'utf8',
+  );
+  await pool.query(migration);
+  await pool.query(migration);
+  profile = await data(await a.request('/api/profile'));
+  assert.equal(profile.id, stableId);
+  assert.equal(profile.legacyLinksRevoked, true);
+  assert.equal(
+    (await pool.query('SELECT active FROM shares WHERE id=$1', [legacyId]))
+      .rows[0].active,
+    0,
+  );
+  for (const id of [legacyId, stableId])
+    for (const path of ['/api/shared/' + id, '/s/' + id, '/s/' + id + '/image'])
+      assert.equal((await anon.request(path)).status, 404);
+  assert.equal((await a.request('/s/' + stableId)).status, 404);
+  assert.equal((await anon.request('/api/profile')).status, 401);
+  assert.equal(
+    (
+      await anon.request('/api/profile', 'PUT', {
+        visibility: 'public',
+        version: 0,
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await a.request(
+        '/api/profile',
+        'PUT',
+        { visibility: 'public', version: 0 },
+        { origin: 'https://attacker.example' },
+      )
+    ).status,
+    403,
+  );
+  assert.equal((await a.request('/api/shares', 'POST', {})).status, 410);
+  assert.equal(
+    (await a.request('/api/shares/' + legacyId, 'PATCH', {})).status,
+    410,
+  );
   let garage = await data(await a.request('/api/garage'));
-  assert.equal(garage.accounts[0].id, 'main');
   assert.equal(garage.records[0].growth, 100);
   assert.equal(garage.records[1].growthMode, 'unknown');
+  assert.equal(garage.records[0].photo, '');
   const gameAccounts = [
     ...garage.accounts,
-    { id: 'alt', label: 'HIDDEN_GAME_LABEL' },
+    { id: 'alt', label: 'PUBLIC_ALT_LABEL' },
   ];
-  assert.equal(garage.records[0].photo, '');
   const alt = {
     state: 'Living',
     species: 'Deinosuchus',
@@ -295,7 +353,7 @@ try {
     growthMode: 'stage',
     growthStage: 'Adult',
     prime: true,
-    code: 'ALT_SECRET',
+    code: 'PUBLIC_ALT_SKIN',
     photo: '',
   };
   garage = await data(
@@ -307,111 +365,146 @@ try {
       ),
     }),
   );
-  assert.equal(garage.records[0].growth, 100);
-  await data(
-    await b.request('/api/garage', 'PUT', {
-      version: 0,
-      records: [rec('b', 1)],
+  profile = await data(
+    await a.request('/api/profile', 'PUT', {
+      visibility: 'public',
+      version: profile.version,
     }),
   );
-  const shared = await data(
-    await a.request('/api/shares', 'POST', {
-      title: 'Public profile',
-      selectedIds: ['alt:same'],
-      includeCodes: false,
-      includePhotos: false,
-      includeAccountLabels: false,
-    }),
-    201,
+  assert.equal(
+    (
+      await a.request('/api/profile', 'PUT', {
+        visibility: 'private',
+        version: 0,
+      })
+    ).status,
+    409,
   );
-  const view = await data(await anon.request('/api/shared/' + shared.id));
-  assert.equal(view.records.length, 1);
-  assert.equal(view.records[0].growthStage, 'Adult');
-  assert.equal(view.records[0].prime, true);
+  let view = await data(await anon.request('/api/shared/' + stableId));
+  assert.equal(view.records.length, 4);
+  assert.deepEqual(view.accountLabels, ['Main', 'PUBLIC_ALT_LABEL']);
+  const publicAlt = view.records.find(
+    (r: { accountLabel: string; species: string }) =>
+      r.accountLabel === 'PUBLIC_ALT_LABEL' && r.species === 'Deinosuchus',
+  );
+  assert.equal(publicAlt.growthStage, 'Adult');
+  assert.equal(publicAlt.prime, true);
+  assert.equal(publicAlt.code, 'PUBLIC_ALT_SKIN');
   for (const secret of [
     emailA,
     emailB,
     'Private owner',
-    'HIDDEN_GAME_LABEL',
-    'ALT_SECRET',
-    'SECRET_SKIN',
     accountA.user.id,
+    accountB.user.id,
+    '/api/photos/',
+    'owner_id',
+    'password',
   ])
     assert.ok(!JSON.stringify(view).includes(secret));
-  const html = await (await anon.request('/s/' + shared.id)).text();
+  await pool.query(migration);
+  assert.equal(
+    (await data(await a.request('/api/profile'))).visibility,
+    'public',
+    'Repeated startup must not reset chosen visibility',
+  );
+  assert.equal((await anon.request('/api/shared/' + legacyId)).status, 404);
+  const html = await (await anon.request('/s/' + stableId)).text();
   assert.match(html, /PRIME/);
   assert.match(html, /Adult/);
   assert.match(html, /og:image/);
   assert.ok(!html.includes(emailA));
-  const image = await anon.request('/s/' + shared.id + '/image');
+  const image = await anon.request('/s/' + stableId + '/image');
   assert.equal(image.status, 200);
   assert.match(image.headers.get('content-type') || '', /image\/png/);
   await image.arrayBuffer();
-  assert.equal(
-    (await b.request('/api/shares/' + shared.id, 'DELETE', {})).status,
-    404,
+  const futureAccounts = [
+    ...gameAccounts,
+    { id: 'future', label: 'Future account' },
+  ];
+  garage = await data(
+    await a.request('/api/garage', 'PUT', {
+      version: garage.version,
+      accounts: futureAccounts,
+      records: [...garage.records, rec('future-server', 42)],
+    }),
   );
-  // Legacy opt-in cannot resurrect old uploads, even if retained in the database.
-  await pool.query('UPDATE shares SET include_photos=1 WHERE id=$1', [
-    shared.id,
-  ]);
-  const staticView = await data(await anon.request('/api/shared/' + shared.id));
-  assert.equal(staticView.records[0].photo, undefined);
-  assert.ok(!JSON.stringify(staticView).includes('/api/photos/'));
-  for (const c of [anon, a, b]) {
-    assert.equal(
-      (await c.request('/api/photos/11111111-1111-1111-1111-111111111111'))
-        .status,
-      404,
-    );
-    assert.equal(
-      (await c.request('/s/' + shared.id + '/photo/alt%3Asame')).status,
-      404,
-    );
-  }
-  for (const species of [...speciesList, 'Custom dinosaur', '../../private']) {
-    const asset = speciesArtwork(species);
-    const response = await anon.request(asset.src);
-    assert.equal(response.status, 200);
-    assert.match(response.headers.get('content-type') || '', /image\/svg/);
-    assert.match(await response.text(), /<svg/);
-  }
-  assert.equal(speciesArtwork('Custom dinosaur').src, '/dinosaurs/unknown.svg');
-  assert.match(html, /dinosaurs\/deinosuchus.svg/);
+  view = await data(await anon.request('/api/shared/' + stableId));
+  assert.equal(view.records.length, 9);
+  assert.ok(view.accountLabels.includes('Future account'));
+  assert.ok(view.records.some((r: { growth: number }) => r.growth === 42));
+  let other = await data(await b.request('/api/profile'));
+  assert.notEqual(other.id, stableId);
+  assert.equal(other.visibility, 'private');
+  // Submitted foreign IDs cannot change the caller-bound owner selection.
+  other = await data(
+    await b.request('/api/profile', 'PUT', {
+      visibility: 'public',
+      version: other.version,
+      id: stableId,
+      ownerId: accountA.user.id,
+    }),
+  );
+  assert.notEqual(other.id, stableId);
+  assert.equal(
+    (await data(await a.request('/api/profile'))).version,
+    profile.version,
+  );
+  assert.deepEqual(
+    (await data(await anon.request('/api/shared/' + other.id))).records,
+    [],
+  );
   for (const photo of [
     'data:image/png;base64,AAAA',
     'https://attacker.example/private.png',
-  ]) {
+  ])
     assert.equal(
       (
         await a.request('/api/garage', 'PUT', {
           version: garage.version,
-          accounts: gameAccounts,
+          accounts: futureAccounts,
           records: [{ ...garage.records[0], photo }],
         })
       ).status,
       400,
     );
-  }
-  assert.equal(
-    (
-      await a.request('/api/garage', 'PUT', {
-        version: garage.version,
-        accounts: gameAccounts,
-        records: [{ ...garage.records[0], growthMode: 'percent', growth: 0 }],
-      })
-    ).status,
-    400,
-  );
   assert.equal(
     (await a.request('/api/garage', 'PUT', { version: 0, records: [] })).status,
     409,
   );
-  await data(await a.request('/api/shares/' + shared.id, 'DELETE', {}));
-  assert.equal((await anon.request('/api/shared/' + shared.id)).status, 404);
-  assert.equal((await anon.request('/s/' + shared.id + '/image')).status, 404);
+  for (const species of [...speciesList, 'Custom dinosaur', '../../private']) {
+    const response = await anon.request(speciesArtwork(species).src);
+    assert.equal(response.status, 200);
+    assert.match(await response.text(), /<svg/);
+  }
+  for (const c of [a, b, anon])
+    assert.equal(
+      (await c.request('/api/photos/11111111-1111-1111-1111-111111111111'))
+        .status,
+      404,
+    );
+  profile = await data(
+    await a.request('/api/profile', 'PUT', {
+      visibility: 'private',
+      version: profile.version,
+    }),
+  );
+  for (const c of [a, b, anon])
+    for (const path of [
+      '/api/shared/' + stableId,
+      '/s/' + stableId,
+      '/s/' + stableId + '/image',
+    ])
+      assert.equal((await c.request(path)).status, 404);
+  assert.equal((await data(await a.request('/api/profile'))).id, stableId);
+  assert.equal((await a.request('/api/shared/' + emailA)).status, 404);
+  const concurrent = await Promise.all(
+    Array.from({ length: 4 }, () =>
+      a.request('/api/profile').then((r) => r.json()),
+    ),
+  );
+  assert.ok(concurrent.every((p) => p.id === stableId));
   console.log(
-    'PASS: legacy/account migration, owner isolation, private DTO, Prime/OG, static species assets, retired uploads and revocation.',
+    'PASS: stable private-by-default profiles, race-safe IDs, whole/future garage projection, no auth exposure, legacy retirement/idempotent migration, cross-owner and stale-write protection, private page/API/OG denial.',
   );
   const before = received.length;
   await data(

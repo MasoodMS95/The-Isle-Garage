@@ -35,3 +35,5 @@ Synthetic records persist only in the local containers. Final production HTTPS/S
 Current security integration covers all 22 bundled assets, fallback mapping, retired image endpoint denial, ignored legacy photo sharing flags, upload rejection and production startup without storage credentials. Historical Worker tests are archived under legacy/sites/tests and are not current acceptance tests.
 
 The static-art release was also validated against isolated native PostgreSQL 17 when Docker Desktop was unavailable; the same real auth/SMTP/garage tests ran, without an object-storage service. Run `node --import tsx tests/catalog.test.ts` for observed official server coverage and preservation, and the migration integration for legacy screenshot stripping.
+
+Stable-profile integration covers auto-created private IDs, concurrent lookup stability, repeated migration, retired links, all current/future accounts and records, skin-code inclusion, auth-identity exclusion, wrong-owner/origin/stale-version denial, and private page/API/OG denial. Test only local PostgreSQL and synthetic SMTP recipients.

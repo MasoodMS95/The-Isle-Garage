@@ -21,16 +21,6 @@ export type Server = Dinosaur & {
   favorite: boolean;
   dinosaurs?: Record<string, Dinosaur>;
 };
-export type Share = {
-  id: string;
-  title: string;
-  selectedIds: string[];
-  includeCodes: boolean;
-  includeAccountLabels: boolean;
-  active: boolean;
-  updatedAt: string;
-  discordStatus: string;
-};
 export type PublicRecord = Omit<Dinosaur, 'code' | 'photo' | 'updated'> & {
   server: string;
   kind: string;
@@ -38,7 +28,14 @@ export type PublicRecord = Omit<Dinosaur, 'code' | 'photo' | 'updated'> & {
   accountLabel?: string;
   code?: string;
 };
+export type GarageProfile = {
+  id: string;
+  visibility: 'private' | 'public';
+  version: number;
+  legacyLinksRevoked: boolean;
+};
 export type PublicShare = {
+  accountLabels: string[];
   id: string;
   title: string;
   records: PublicRecord[];

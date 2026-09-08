@@ -9,8 +9,8 @@ A private, manually maintained dinosaur garage for **The Isle: Evrima**, with se
 - Living/parked, dead, unknown, and empty states.
 - Growth as **1–100%** or **Juvie / Adolescent / Adult / Full grown**, without automatic conversion.
 - Independent **PRIME** status, with a text badge and gold accent.
-- Stable read-only profiles; explicitly selected records refresh every 15 seconds.
-- Optional skin codes and opt-in account labels; bundled species illustrations.
+- One automatically assigned stable garage link per website account, private by default; public records refresh every 15 seconds.
+- Whole-garage public visibility includes all game-account labels and skin codes; bundled species illustrations.
 - Open Graph PNG previews and optional edits to one configured bot-owned Discord message.
 
 This unofficial fan project does not connect to live game data or implement Steam authentication.
@@ -46,11 +46,11 @@ See [testing](docs/TESTING.md) for the real PostgreSQL/SMTP integration test. Hi
 
 ## Sharing privacy
 
-Private routes authorize the signed-in owner. Public routes construct a selected-field response rather than returning the stored garage.
+Private routes authorize the signed-in owner. Each user gets a random opaque profile ID, unrelated to their email or internal account ID. There is no public directory or email lookup.
 
-Links bind to persistent account/server IDs. Switching tabs or renaming labels cannot change their selected account. Emails, login identities, private favorite lists, and unselected records are not public fields.
+Sharing has one Public/Private switch. Private is the default and makes the public page, API and OG image return 404 even to the owner; owners preview records in their private garage. Public exposes all stored servers across all game accounts, including labels, status, species, growth, Prime and skin codes. New accounts and records appear automatically after saving. Auth names, email, passwords, sessions and upload references are never projected.
 
-Skin codes and account labels are excluded unless enabled. Revocation blocks future page/API/image access; third-party preview caches cannot be erased by this app.
+The link stays stable across visibility changes. Old selected links are retired with a notice, never silently broadened; their retained database rows do not grant access. Changing back to private blocks future access but cannot recall Discord or other third-party cached previews.
 
 ## Deployment and operations
 

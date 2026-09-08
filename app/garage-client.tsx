@@ -98,8 +98,26 @@ export default function Garage({
   const [changed, setChanged] = useState(0);
   const revision = useRef(initialVersion);
   const saveChain = useRef(Promise.resolve());
+  const latestQueuedSave = useRef(0);
   const [paused, setPaused] = useState(false);
   const [camera, setCamera] = useState(1);
+  const [cameraLoading, setCameraLoading] = useState(false);
+  const cameraRequest = useRef(0);
+  async function selectCamera(index: number) {
+    const request = ++cameraRequest.current;
+    setCameraLoading(true);
+    const image = new window.Image();
+    image.src = cameras[index].image;
+    try {
+      await image.decode();
+      if (request === cameraRequest.current) setCamera(index);
+    } catch {
+      if (request === cameraRequest.current)
+        setNotice('This still could not load. Try again.');
+    } finally {
+      if (request === cameraRequest.current) setCameraLoading(false);
+    }
+  }
   const [tab, setTab] = useState('mine');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('All servers');
@@ -206,8 +224,10 @@ export default function Garage({
   useEffect(() => {
     if (!changed) return;
     const timer = setTimeout(() => {
-      const { records, accounts: savedAccounts } = snapshot.current;
+      latestQueuedSave.current = changed;
       saveChain.current = saveChain.current.then(async () => {
+        if (changed !== latestQueuedSave.current) return;
+        const { records, accounts: savedAccounts } = snapshot.current;
         try {
           const response = await fetch('/api/garage', {
             method: 'PUT',
@@ -678,8 +698,8 @@ export default function Garage({
               </TabsContent>
             </Tabs>
             <div className="local-note">
-              Private account-owned records. Only lists you publish are public.
-              Parking does not save a dinosaur in-game.
+              Private account-owned records. Only garages you make public can be
+              viewed by others. Parking does not save a dinosaur in-game.
             </div>
           </section>
           <aside
@@ -699,7 +719,7 @@ export default function Garage({
                   key={cam.name}
                   aria-pressed={camera === index}
                   aria-label={'View ' + cam.name + ' illustration'}
-                  onClick={() => setCamera(index)}
+                  onClick={() => void selectCamera(index)}
                 >
                   <img
                     src={cam.image}
@@ -710,7 +730,10 @@ export default function Garage({
                 </button>
               ))}
             </fieldset>
-            <div className={'camera-feed camera-' + camera}>
+            <div
+              className={'camera-feed camera-' + camera}
+              aria-busy={cameraLoading}
+            >
               <img
                 src={cameras[camera].image}
                 alt={
@@ -739,7 +762,13 @@ export default function Garage({
                 <i />
                 OBSERVATION MODE
               </span>
-              <span>{paused ? 'EFFECTS PAUSED' : 'DISPLAY ACTIVE'}</span>
+              <span>
+                {cameraLoading
+                  ? 'LOADING STILL…'
+                  : paused
+                    ? 'EFFECTS PAUSED'
+                    : 'DISPLAY ACTIVE'}
+              </span>
             </div>
             <p className="simulation-note">
               Original still artwork with simulated display effects. No live
@@ -1093,15 +1122,10 @@ export default function Garage({
         <DialogContent className="garage-dialog">
           <DialogTitle>Share your garage</DialogTitle>
           <DialogDescription>
-            Publish selected records, then copy a stable link.
+            Choose Public or Private for your whole garage and copy your stable
+            link.
           </DialogDescription>
-          <ShareManager
-            servers={allServers}
-            accounts={accounts}
-            initialAccountId={accountId}
-            saved={saveState === 'saved'}
-            onSave={markChanged}
-          />
+          <ShareManager saved={saveState === 'saved'} onSave={markChanged} />
         </DialogContent>
       </Dialog>
       <Dialog open={info} onOpenChange={setInfo}>

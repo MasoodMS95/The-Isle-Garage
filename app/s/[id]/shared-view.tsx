@@ -42,7 +42,7 @@ export default function SharedView({ initial }: { initial: PublicShare }) {
     return (
       <main className="public-share">
         <h1>Share unavailable</h1>
-        <p>This link has been revoked or removed.</p>
+        <p>This garage is private or unavailable.</p>
       </main>
     );
   return (
@@ -50,7 +50,8 @@ export default function SharedView({ initial }: { initial: PublicShare }) {
       <header>
         <span className="eyebrow moss">THE ISLE GARAGE / PUBLIC PROFILE</span>
         <h1>{data.title}</h1>
-        <p>Dinosaurs &amp; servers</p>
+        <p>All game accounts, dinosaurs &amp; servers</p>
+        <p>Game accounts: {data.accountLabels.join(' · ')}</p>
       </header>
       {stale && (
         <p role="alert">
@@ -58,9 +59,7 @@ export default function SharedView({ initial }: { initial: PublicShare }) {
         </p>
       )}
       {data.records.length === 0 && (
-        <p className="public-empty">
-          No dinosaurs or servers are currently shared.
-        </p>
+        <p className="public-empty">This garage has no server records yet.</p>
       )}
       <div className="public-records">
         {data.records.map((r, i) => (

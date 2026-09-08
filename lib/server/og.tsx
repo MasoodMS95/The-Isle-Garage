@@ -104,7 +104,9 @@ export async function garageImage(id: string) {
           marginTop: 18,
         }}
       >
-        <span>{data.records.length} selected servers · manual records</span>
+        <span>
+          {data.records.length} account/server records · manual records
+        </span>
         <span>
           {new Date(data.updatedAt)
             .toISOString()

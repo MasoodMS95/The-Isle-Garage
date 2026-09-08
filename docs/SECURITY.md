@@ -8,7 +8,7 @@
 - PostgreSQL backs library limits and HMAC per-email throttle keys. Forwarding headers are ignored; shared-bucket availability limitations are documented separately.
 - Auth POSTs and garage/share mutations require the configured Origin. No permissive CORS is enabled. Library CSRF protections remain on. GET verification has an atomic one-use gate.
 - Streamed request limits reject oversized/chunked bodies before full buffering. Screenshot uploads are disabled; data URLs and remote image URLs are rejected. Bundled artwork uses an exact species-to-file allowlist.
-- Every private data route checks ownership. Retired private/public photo routes always return 404. Public profiles and previews use explicit selected-field projections and independent optional-field gates.
+- Every private data route checks ownership. Retired private/public photo routes always return 404. Public profiles and previews require the user's current Public setting and use an explicit whole-garage record projection, excluding auth identity and secrets. Private/unrecognized IDs return404 consistently.
 - Nonce script CSP, frame denial, no-sniff, no-referrer, production HSTS, restrictive feature permissions, and no-store private/auth responses.
 - Production checks run at actual startup and server instrumentation. Public database endpoints verify TLS; private non-TLS mode is limited to Render's internal hostname.
 - Durable SMTP payloads are AES-GCM encrypted with a key derived from the auth secret. Raw mail/token/password logging is disabled. The worker recovers after connection-acquisition failure.
@@ -25,3 +25,5 @@ Review edge abuse controls before increasing traffic. The conservative global au
 These controls reduce risk; they do not promise breach-proof operation or blanket security-standard compliance.
 
 Legacy photo references and include_photos flags never grant access. Reads strip references, writes clear them, and migration omits images. Existing objects/backups are not deleted by this release.
+
+Stable profile IDs are random and unique per website user. Creation is race-safe; startup migration provisions existing users without publishing them. Visibility writes are owner-bound, origin-checked and version-checked. Legacy selected-link APIs cannot publish or reactivate links. Repeated migrations preserve an already-chosen visibility and profile ID while retiring any legacy links.

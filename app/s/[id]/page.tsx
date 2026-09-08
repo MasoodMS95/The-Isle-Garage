@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { recordSummary } from '@/lib/garage-model';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -5,10 +6,11 @@ import { publicData } from '@/lib/server/garage';
 import { origin } from '@/lib/server/runtime';
 import SharedView from './shared-view';
 export const dynamic = 'force-dynamic';
+const loadProfile = cache(publicData);
 type Props = { params: Promise<{ id: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const data = await publicData(id);
+  const data = await loadProfile(id);
   if (!data)
     return {
       title: 'Share unavailable',
@@ -36,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           url: image,
           width: 1200,
           height: 630,
-          alt: 'Current selected garage records',
+          alt: 'Current garage records',
         },
       ],
     },
@@ -49,7 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 export default async function SharedPage({ params }: Props) {
-  const data = await publicData((await params).id);
+  const data = await loadProfile((await params).id);
   if (!data) notFound();
   return <SharedView initial={data} />;
 }

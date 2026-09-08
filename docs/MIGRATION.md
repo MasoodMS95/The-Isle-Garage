@@ -26,8 +26,10 @@ node --env-file=.env --import tsx scripts/import-legacy.ts --directory /private/
 
 The importer checks the owner mapping, verified destination, validation, and selections. It refuses an existing destination garage or colliding share IDs. Database rows commit together. Images are not read or imported; even older manifests have screenshot references stripped. Source data and objects remain untouched.
 
-Legacy records become Main; 100 remains 100, zero remains unknown. Account IDs and share IDs/scopes are retained. Discord synchronization is not triggered.
+Legacy records become Main; 100 remains 100, zero remains unknown. Game-account IDs and legacy share rows/IDs are retained for audit, but imported selected links are inactive and unavailable. Discord synchronization is not triggered.
 
-The /s/SHARE_ID **path** can survive; the old Sites hostname does not automatically redirect. Share new URLs unless a separately authorized domain/redirect migration is arranged.
+The new whole-garage profile uses a new stable opaque ID and starts Private. Old /s/SHARE_ID links return404 and are never redirected to broader data. The sharing panel explains retirement of previously active links.
 
-Verify record counts, static artwork, ownership, a selected link, and revocation after import. Keep the old service/backups until acceptance. This is not automatic email-based linking or merging.
+Verify record counts, static artwork, ownership, the new profile's default privacy, and visibility changes after import. Keep the old service/backups until acceptance. This is not automatic email-based linking or merging.
+
+Migration002 is idempotent: it creates one private profile for each existing auth user, retires selected links and records a migration notice. It does not reset existing profile IDs or chosen visibility on subsequent deploys. No garage records or auth accounts are deleted.

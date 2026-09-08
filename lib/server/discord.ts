@@ -1,26 +1,25 @@
 import { recordSummary } from '../garage-model';
 
 import { db, origin } from './runtime';
-import { publicData, type ShareRow } from './garage';
+import { publicData } from './garage';
 export function discordConfigured() {
   return (
     process.env.DISCORD_SYNC_ENABLED === 'true' &&
     !!process.env.DISCORD_BOT_TOKEN &&
     !!process.env.DISCORD_CHANNEL_ID &&
     !!process.env.DISCORD_MESSAGE_ID &&
-    !!process.env.DISCORD_SHARE_ID &&
     !!process.env.DISCORD_OWNER_ID
   );
 }
 export async function syncDiscord(ownerId: string) {
   if (!discordConfigured() || process.env.DISCORD_OWNER_ID !== ownerId)
     return 'not_configured';
-  const id = process.env.DISCORD_SHARE_ID!;
   const share = await db()
-    .prepare('SELECT * FROM shares WHERE id=? AND owner_id=?')
-    .bind(id, ownerId)
-    .first<ShareRow>();
+    .prepare('SELECT * FROM garage_profiles WHERE owner_id=?')
+    .bind(ownerId)
+    .first<{ public_id: string; next_attempt: number }>();
   if (!share) return 'not_configured';
+  const id = share.public_id;
   if (share.next_attempt > Date.now()) return 'rate_limited';
   const headers = {
     Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
@@ -29,7 +28,7 @@ export async function syncDiscord(ownerId: string) {
   const status = async (value: string, next = 0) => {
     await db()
       .prepare(
-        'UPDATE shares SET discord_status=?,next_attempt=? WHERE id=? AND owner_id=?',
+        'UPDATE garage_profiles SET discord_status=?,next_attempt=? WHERE public_id=? AND owner_id=?',
       )
       .bind(value, next, id, ownerId)
       .run();
@@ -89,7 +88,7 @@ export async function syncDiscord(ownerId: string) {
           ],
         }
       : {
-          content: 'This garage share has been revoked.',
+          content: 'This garage is private.',
           embeds: [],
           allowed_mentions: { parse: [] },
         };
