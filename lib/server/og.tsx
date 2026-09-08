@@ -6,8 +6,8 @@ import { speciesArtwork } from '../species-art';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { json, noStore } from './runtime';
-export async function garageImage(id: string) {
-  const data = await publicData(id);
+export async function garageImage(id: string, byHandle = false) {
+  const data = await publicData(id, byHandle);
   if (!data) return json({ error: 'Share unavailable' }, 404);
   const imageRecord = data.records.find((r) => r.state !== 'No dinosaur');
   const artwork = imageRecord ? speciesArtwork(imageRecord.species) : undefined;

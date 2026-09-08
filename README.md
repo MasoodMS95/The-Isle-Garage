@@ -50,7 +50,9 @@ Private routes authorize the signed-in owner. Each user gets a random opaque pro
 
 Sharing has one Public/Private switch. Private is the default and makes the public page, API and OG image return 404 even to the owner; owners preview records in their private garage. Public exposes all stored servers across all game accounts, including labels, status, species, growth, Prime and skin codes. New accounts and records appear automatically after saving. Auth names, email, passwords, sessions and upload references are never projected.
 
-The link stays stable across visibility changes. Old selected links are retired with a notice, never silently broadened; their retained database rows do not grant access. Changing back to private blocks future access but cannot recall Discord or other third-party cached previews.
+Choose a separate public username once in sharing settings for `/parked/your_username`. It accepts 3–30 ASCII letters/numbers with single internal hyphens or underscores, is case-insensitively unique, and cannot be renamed. Your private sign-in name and email are never used. Before choosing, an assigned garage link is available; it and the previous opaque `/s/` profile link remain privacy-gated aliases to the chosen address. The link stays stable across visibility changes. Old selected links are retired with a notice, never silently broadened; their retained database rows do not grant access. Changing back to private blocks future access but cannot recall Discord or other third-party cached previews.
+
+Copy link shows a completion message after the browser clipboard request succeeds. If clipboard access fails, the full link is selected with manual-copy instructions; the link field can always be selected and copied directly.
 
 ## Deployment and operations
 
@@ -73,7 +75,7 @@ GitHub is the only source destination. Use **main** as canonical and milestone/g
 | app/share-manager.tsx              | Explicit sharing                            |
 | app/s/[id]/                        | Public profiles and protected images        |
 | lib/auth.ts                        | Password/session/verification policy        |
-| lib/server/                        | PostgreSQL, mail, ownership, projection |
+| lib/server/                        | PostgreSQL, mail, ownership, projection     |
 | migrations/postgres/               | Application SQL                             |
 | scripts/                           | Startup checks, migrations, legacy transfer |
 | tests/security.integration.ts      | Real local integration tests                |

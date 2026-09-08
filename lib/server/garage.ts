@@ -65,14 +65,34 @@ export function validateAccounts(
     throw new HttpError(400, 'Existing game accounts must be retained');
   return accounts;
 }
-export async function publicData(id: string): Promise<PublicShare | null> {
-  if (!/^[a-f0-9]{32}$/.test(id)) return null;
+export async function publicData(
+  id: string,
+  byHandle = false,
+): Promise<PublicShare | null> {
+  if (!/^[A-Za-z0-9_-]+$/.test(id)) return null;
+  id = id.toLowerCase();
+  if (
+    byHandle
+      ? !/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/.test(id) || id.length > 39
+      : !/^[a-f0-9]{32}$/.test(id)
+  )
+    return null;
   const row = await db()
     .prepare(
-      'SELECT p.public_id,p.updated_at AS profile_updated_at,p.version AS profile_version,g.records,g.version,g.updated_at FROM garage_profiles p LEFT JOIN garages g ON g.owner_id=p.owner_id WHERE p.public_id=? AND p.is_public=true',
+      'SELECT p.public_id,p.handle,p.initial_handle,p.updated_at AS profile_updated_at,p.version AS profile_version,g.records,g.version,g.updated_at FROM garage_profiles p LEFT JOIN garages g ON g.owner_id=p.owner_id WHERE ' +
+        (byHandle ? '(p.handle=? OR p.initial_handle=?)' : 'p.public_id=?') +
+        ' AND p.is_public=true',
     )
-    .bind(id)
-    .first<GarageRow & { profile_updated_at: Date; profile_version: number }>();
+    .bind(...(byHandle ? [id, id] : [id]))
+    .first<
+      GarageRow & {
+        public_id: string;
+        handle: string | null;
+        initial_handle: string;
+        profile_updated_at: Date;
+        profile_version: number;
+      }
+    >();
   if (!row) return null;
   const garage = row.records ? row : null;
   const servers = clientRecords(garage) || [];
@@ -102,7 +122,8 @@ export async function publicData(id: string): Promise<PublicShare | null> {
     ),
   ).toISOString();
   return {
-    id,
+    id: row.public_id,
+    handle: row.handle || row.initial_handle,
     title: 'Garage profile',
     accountLabels: accounts.map((account) => account.label),
     records,

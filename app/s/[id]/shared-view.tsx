@@ -14,7 +14,7 @@ export default function SharedView({ initial }: { initial: PublicShare }) {
     let active = true;
     const refresh = async () => {
       try {
-        const response = await fetch(`/api/shared/${initial.id}`, {
+        const response = await fetch(`/api/parked/${initial.handle}`, {
           cache: 'no-store',
         });
         if (!active) return;
@@ -37,7 +37,7 @@ export default function SharedView({ initial }: { initial: PublicShare }) {
       active = false;
       clearInterval(timer);
     };
-  }, [initial.id]);
+  }, [initial.handle]);
   if (unavailable)
     return (
       <main className="public-share">

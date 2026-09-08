@@ -33,3 +33,7 @@ The new whole-garage profile uses a new stable opaque ID and starts Private. Old
 Verify record counts, static artwork, ownership, the new profile's default privacy, and visibility changes after import. Keep the old service/backups until acceptance. This is not automatic email-based linking or merging.
 
 Migration002 is idempotent: it creates one private profile for each existing auth user, retires selected links and records a migration notice. It does not reset existing profile IDs or chosen visibility on subsequent deploys. No garage records or auth accounts are deleted.
+
+## Public usernames
+
+Migration `003-public-handles.sql` adds a permanent provisional alias and an optional one-time chosen handle with database uniqueness. Existing profile IDs, Public/Private choices and garage contents are preserved. Run the normal migration command before starting the new runtime. Repeated runs preserve chosen handles; provisional aliases remain reserved to the same profile. No authentication names or emails are copied into public handles. Old opaque profile routes redirect only after checking public visibility; retired selected-record links remain unavailable.

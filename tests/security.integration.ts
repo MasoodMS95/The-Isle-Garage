@@ -294,6 +294,93 @@ try {
   let profile = await data(await a.request('/api/profile'));
   assert.equal(profile.visibility, 'private');
   const stableId = profile.id;
+  const provisionalHandle = profile.handle;
+  assert.equal(profile.handleChosen, false);
+  const handleMigration = await readFile(
+    'migrations/postgres/003-public-handles.sql',
+    'utf8',
+  );
+  await pool.query(handleMigration);
+  await pool.query(handleMigration);
+  assert.equal(
+    (await data(await a.request('/api/profile'))).handle,
+    provisionalHandle,
+  );
+  const username = 'test_user-' + Date.now();
+  for (const handle of [
+    'admin',
+    '../escape',
+    'a/b',
+    'a@b.com',
+    'a',
+    'a'.repeat(31),
+    'garage-reserved',
+    'éxample',
+    'hello--world',
+  ]) {
+    assert.equal(
+      (
+        await a.request('/api/profile', 'PUT', {
+          handle,
+          version: profile.version,
+        })
+      ).status,
+      400,
+    );
+  }
+  const chosen = await Promise.all(
+    [0, 1].map(() =>
+      a.request('/api/profile', 'PUT', {
+        handle: username.toUpperCase(),
+        version: profile.version,
+      }),
+    ),
+  );
+  assert.deepEqual(
+    chosen.map((r) => r.status).sort((left, right) => left - right),
+    [200, 409],
+  );
+  profile = await data(await a.request('/api/profile'));
+  assert.equal(profile.handle, username);
+  assert.equal(profile.handleChosen, true);
+  assert.equal(profile.visibility, 'private');
+  const bBeforeHandle = await data(await b.request('/api/profile'));
+  assert.equal(
+    (
+      await b.request('/api/profile', 'PUT', {
+        handle: username.toUpperCase(),
+        version: bBeforeHandle.version,
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await a.request('/api/profile', 'PUT', {
+        handle: 'replacement-name',
+        version: profile.version,
+      })
+    ).status,
+    409,
+  );
+  for (const c of [a, anon])
+    for (const path of [
+      '/parked/' + username,
+      '/parked/' + username + '/image',
+      '/api/parked/' + username,
+      '/parked/' + provisionalHandle,
+    ]) {
+      const denied = await c.request(path);
+      assert.equal(denied.status, 404);
+      // Next development rendering overrides page cache headers; APIs/images must remain no-store.
+      assert.match(
+        denied.headers.get('cache-control') || '',
+        path.startsWith('/api/') || path.endsWith('/image')
+          ? /no-store/
+          : /no-store|no-cache/,
+      );
+    }
+
   const migration = await readFile(
     'migrations/postgres/002-garage-profiles.sql',
     'utf8',
@@ -408,7 +495,37 @@ try {
     'Repeated startup must not reset chosen visibility',
   );
   assert.equal((await anon.request('/api/shared/' + legacyId)).status, 404);
-  const html = await (await anon.request('/s/' + stableId)).text();
+  await pool.query(handleMigration);
+  const migratedProfile = await data(await a.request('/api/profile'));
+  assert.equal(migratedProfile.visibility, 'public');
+  assert.equal(migratedProfile.id, stableId);
+  assert.equal(migratedProfile.handle, username);
+  for (const path of [
+    '/s/' + stableId,
+    '/parked/' + provisionalHandle,
+    '/parked/' + username.toUpperCase(),
+  ]) {
+    const redirected = await anon.request(path);
+    assert.equal(redirected.status, 307);
+    assert.equal(redirected.headers.get('location'), '/parked/' + username);
+    assert.match(
+      redirected.headers.get('cache-control') || '',
+      /no-store|no-cache/,
+    );
+  }
+  const canonicalResponse = await anon.request('/parked/' + username);
+  assert.equal(canonicalResponse.status, 200);
+  const html = await canonicalResponse.text();
+  assert.ok(html.includes('/parked/' + username + '/image'));
+  assert.match(html, /rel="canonical"/);
+  assert.equal(
+    (await data(await anon.request('/api/parked/' + username))).id,
+    stableId,
+  );
+  const handleImage = await anon.request('/parked/' + username + '/image');
+  assert.equal(handleImage.status, 200);
+  assert.match(handleImage.headers.get('cache-control') || '', /no-store/);
+  await handleImage.arrayBuffer();
   assert.match(html, /PRIME/);
   assert.match(html, /Adult/);
   assert.match(html, /og:image/);
@@ -493,6 +610,10 @@ try {
       '/api/shared/' + stableId,
       '/s/' + stableId,
       '/s/' + stableId + '/image',
+      '/parked/' + username,
+      '/parked/' + provisionalHandle,
+      '/parked/' + username + '/image',
+      '/api/parked/' + username,
     ])
       assert.equal((await c.request(path)).status, 404);
   assert.equal((await data(await a.request('/api/profile'))).id, stableId);

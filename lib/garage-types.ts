@@ -29,12 +29,15 @@ export type PublicRecord = Omit<Dinosaur, 'code' | 'photo' | 'updated'> & {
   code?: string;
 };
 export type GarageProfile = {
+  handle: string;
+  handleChosen: boolean;
   id: string;
   visibility: 'private' | 'public';
   version: number;
   legacyLinksRevoked: boolean;
 };
 export type PublicShare = {
+  handle: string;
   accountLabels: string[];
   id: string;
   title: string;

@@ -22,6 +22,12 @@ try {
       'utf8',
     ),
   );
+  await connection.query(
+    await readFile(
+      new URL('../migrations/postgres/003-public-handles.sql', import.meta.url),
+      'utf8',
+    ),
+  );
   console.log('Database migrations complete.');
 } finally {
   await connection.query('SELECT pg_advisory_unlock(741937)');

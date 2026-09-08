@@ -2840,3 +2840,32 @@ footer {
     width: 100%;
   }
 }
+
+/* Keep long share URLs within narrow dialogs and provide a usable copy target. */
+.share-settings {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+.share-settings > *,
+.share-settings label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.share-settings input[readonly] {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-height: 44px;
+}
+.share-actions .copy-link-button {
+  width: auto;
+  min-height: 44px;
+  min-width: 120px;
+}
+
+.share-settings input[type='text'] {
+  font-size: 16px;
+}
+.share-actions .select-link-button,
+.public-username-setting .primary-button {
+  min-height: 44px;
+}

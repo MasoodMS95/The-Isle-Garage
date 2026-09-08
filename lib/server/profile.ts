@@ -1,7 +1,10 @@
+import { randomUUID } from 'node:crypto';
 import { databasePool } from './database.ts';
 export type ProfileRow = {
   owner_id: string;
   public_id: string;
+  initial_handle: string;
+  handle: string | null;
   is_public: boolean;
   version: number;
   legacy_links_revoked: boolean;
@@ -13,16 +16,19 @@ export async function ensureProfile(ownerId: string): Promise<ProfileRow> {
     [ownerId],
   );
   if (existing.rowCount) return existing.rows[0];
+  const id = randomUUID().replaceAll('-', '');
   return (
     await databasePool().query(
-      'INSERT INTO garage_profiles(owner_id) VALUES($1) ON CONFLICT(owner_id) DO UPDATE SET owner_id=EXCLUDED.owner_id RETURNING *',
-      [ownerId],
+      'INSERT INTO garage_profiles(owner_id,public_id,initial_handle) VALUES($1,$2,$3) ON CONFLICT(owner_id) DO UPDATE SET owner_id=EXCLUDED.owner_id RETURNING *',
+      [ownerId, id, 'garage-' + id],
     )
   ).rows[0];
 }
 export function profileView(profile: ProfileRow) {
   return {
     id: profile.public_id,
+    handle: profile.handle || profile.initial_handle,
+    handleChosen: !!profile.handle,
     visibility: profile.is_public ? 'public' : 'private',
     version: profile.version,
     legacyLinksRevoked: profile.legacy_links_revoked,
